@@ -172,36 +172,12 @@
                         @temporary-variables-clear="handleVariablesClear"
                     />
 
-                    <!-- 顶部：列数与全局操作 -->
-                    <NCard size="small" :style="{ flexShrink: 0 }">
+                    <!-- 顶部：对比评估状态（仅在有对比数据时显示） -->
+                    <NCard v-if="hasCompareCandidates || hasCompareEvaluation || compareToolbarStatus" size="small" :style="{ flexShrink: 0 }">
                         <div class="test-area-top">
-                            <NFlex align="center" :size="8" :wrap="false" style="min-width: 0;">
-                                <NText :depth="2" class="test-area-label">
-                                    {{ t('test.layout.columns') }}：
-                                </NText>
-                                <NRadioGroup
-                                    v-model:value="testColumnCountModel"
-                                    size="small"
-                                    :disabled="isAnyVariantRunning"
-                                >
-                                    <NRadioButton :value="2">2</NRadioButton>
-                                    <NRadioButton :value="3">3</NRadioButton>
-                                    <NRadioButton :value="4" :disabled="!canUseFourColumns">4</NRadioButton>
-                                </NRadioGroup>
-                            </NFlex>
+                            <div></div>
 
                             <NFlex align="center" justify="end" :size="8" :wrap="false">
-                                <NButton
-                                    type="primary"
-                                    size="small"
-                                    :loading="isAnyVariantRunning"
-                                    :disabled="isAnyVariantRunning"
-                                    @click="runAllVariants"
-                                    :data-testid="'pro-multi-test-run-all'"
-                                >
-                                    {{ t('test.layout.runAll') }}
-                                </NButton>
-
                                 <template v-if="hasCompareCandidates || hasCompareEvaluation">
                                     <EvaluationScoreBadge
                                         v-if="hasCompareEvaluation || isEvaluatingCompare"
@@ -237,7 +213,6 @@
                                         </template>
                                     </FocusAnalyzeButton>
                                 </template>
-                                <CompareHelpButton v-if="activeVariantIds.length >= 2" />
                                 <NTag
                                     v-if="compareToolbarStatus"
                                     size="small"
@@ -258,17 +233,6 @@
                                     class="variant-cell__controls"
                                     :class="{ 'variant-cell__controls--stacked': useStackedVariantControls }"
                                 >
-                                    <div class="variant-cell__meta">
-                                        <NTag size="small" :bordered="false" class="variant-cell__label">
-                                            {{ getVariantLabel(id) }}
-                                        </NTag>
-                                        <CompareRoleBadge
-                                            v-if="activeVariantIds.length >= 2"
-                                            :entry="compareRoleEntryMap[id]"
-                                            clickable
-                                            @click="openCompareRoleConfig"
-                                        />
-                                    </div>
 
                                     <div class="variant-cell__actions">
                                         <TestPanelVersionSelect
@@ -967,13 +931,7 @@ const getVariant = (id: TestVariantId): TestVariantConfig | undefined => {
     return Array.isArray(list) ? list.find((v) => v.id === id) : undefined
 }
 
-const testColumnCountModel = computed<TestColumnCount>({
-    get: () => {
-        const raw = proMultiSession.layout.testColumnCount
-        return raw === 2 || raw === 3 || raw === 4 ? raw : 2
-    },
-    set: (value) => proMultiSession.setTestColumnCount(value),
-})
+const testColumnCountModel = ref<TestColumnCount>(1)
 
 const variantAVersionModel = computed<TestPanelVersionValue>({
     get: () => getVariant('a')?.version ?? 0,

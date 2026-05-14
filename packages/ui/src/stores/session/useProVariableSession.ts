@@ -35,7 +35,7 @@ export type TestPanelVersionValue = 'workspace' | 'previous' | 0 | number
 
 export type TestVariantId = 'a' | 'b' | 'c' | 'd'
 
-export type TestColumnCount = 2 | 3 | 4
+export type TestColumnCount = 1 | 2 | 3 | 4
 
 export interface ProVariableLayoutConfig {
   /** 主布局左侧宽度（百分比，25..50） */
@@ -104,7 +104,7 @@ const createDefaultState = (): ProVariableSessionState => ({
   versionId: '',
   testContent: '',
   temporaryVariables: {},
-  layout: { mainSplitLeftPct: 50, testColumnCount: 2 },
+  layout: { mainSplitLeftPct: 50, testColumnCount: 1 },
   testVariants: [
     { id: 'a', version: 0, modelKey: '' },
     { id: 'b', version: 'workspace', modelKey: '' },
@@ -469,7 +469,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
           ? savedLayout.mainSplitLeftPct
           : defaultState.layout.mainSplitLeftPct
         const savedLeft = Math.min(50, Math.max(25, Math.round(savedLeftRaw)))
-        const savedCols = savedLayout && (savedLayout.testColumnCount === 2 || savedLayout.testColumnCount === 3 || savedLayout.testColumnCount === 4)
+        const savedCols = savedLayout && (savedLayout.testColumnCount === 1 || savedLayout.testColumnCount === 2 || savedLayout.testColumnCount === 3 || savedLayout.testColumnCount === 4)
           ? savedLayout.testColumnCount
           : defaultState.layout.testColumnCount
         layout.value = {

@@ -167,83 +167,6 @@
             <!-- 右侧：测试区域 -->
             <div ref="testPaneRef" class="split-pane" style="min-width: 0; height: 100%; overflow: hidden;">
                 <NFlex vertical :style="{ height: '100%', gap: '12px' }">
-                    <!-- 顶部：列数与全局操作 -->
-                    <NCard size="small" :style="{ flexShrink: 0 }">
-                        <div class="test-area-top">
-                            <NFlex align="center" :size="8" :wrap="false" style="min-width: 0;">
-                                <NText :depth="2" class="test-area-label">
-                                    {{ t('test.layout.columns') }}：
-                                </NText>
-                                <NRadioGroup
-                                    v-model:value="testColumnCountModel"
-                                    size="small"
-                                    :disabled="isAnyVariantRunning"
-                                >
-                                    <NRadioButton :value="2">2</NRadioButton>
-                                    <NRadioButton :value="3">3</NRadioButton>
-                                    <NRadioButton :value="4" :disabled="!canUseFourColumns">4</NRadioButton>
-                                </NRadioGroup>
-                            </NFlex>
-
-                            <NFlex align="center" justify="end" :size="8" :wrap="false">
-                                <NButton
-                                    type="primary"
-                                    size="small"
-                                    :loading="isAnyVariantRunning"
-                                    :disabled="isAnyVariantRunning"
-                                    @click="runAllVariants"
-                                    :data-testid="'basic-user-test-run-all'"
-                                >
-                                    {{ t('test.layout.runAll') }}
-                                </NButton>
-
-                                <template v-if="hasCompareCandidates || hasCompareEvaluation">
-                                    <EvaluationScoreBadge
-                                        v-if="hasCompareEvaluation || isEvaluatingCompare"
-                                        :score="compareScore"
-                                        :level="compareScoreLevel"
-                                        :loading="isEvaluatingCompare"
-                                        :result="compareEvaluationResult"
-                                        type="compare"
-                                        :stale="isCompareEvaluationStale"
-                                        :stale-message="t('evaluation.stale.compare')"
-                                        :disable-evaluate="!canEvaluateCompare"
-                                        :disable-evaluate-reason="compareDisabledReason"
-                                        size="small"
-                                        @show-detail="() => showDetail('compare')"
-                                        @evaluate="() => handleEvaluate('compare')"
-                                        @evaluate-with-feedback="handleEvaluateWithFeedback"
-                                        @apply-improvement="handleApplyImprovement"
-                                        @apply-patch="handleApplyPatch"
-                                    />
-                                    <FocusAnalyzeButton
-                                        v-else
-                                        type="compare"
-                                        :label="t('evaluation.compareEvaluate')"
-                                        :disabled="!canEvaluateCompare"
-                                        :disabled-reason="compareDisabledReason"
-                                        :loading="isEvaluatingCompare"
-                                        :button-props="{ size: 'small', type: 'tertiary' }"
-                                        @evaluate="() => handleEvaluate('compare')"
-                                        @evaluate-with-feedback="handleEvaluateWithFeedback"
-                                    >
-                                        <template #icon>
-                                            <AnalyzeActionIcon />
-                                        </template>
-                                    </FocusAnalyzeButton>
-                                </template>
-                                <CompareHelpButton v-if="activeVariantIds.length >= 2" />
-                                <NTag
-                                    v-if="compareToolbarStatus"
-                                    size="small"
-                                    :type="compareToolbarStatus.type"
-                                    :bordered="false"
-                                >
-                                    {{ compareToolbarStatus.label }}
-                                </NTag>
-                            </NFlex>
-                        </div>
-                    </NCard>
 
                     <!-- 配置区：与结果列对齐 -->
                     <NCard size="small" :style="{ flexShrink: 0 }">
@@ -258,15 +181,6 @@
                                     :class="{ 'variant-cell__controls--stacked': useStackedVariantControls }"
                                 >
                                     <div class="variant-cell__meta">
-                                        <NTag size="small" :bordered="false" class="variant-cell__label">
-                                            {{ getVariantLabel(id) }}
-                                        </NTag>
-                                        <CompareRoleBadge
-                                            v-if="activeVariantIds.length >= 2"
-                                            :entry="compareRoleEntryMap[id]"
-                                            clickable
-                                            @click="openCompareRoleConfig"
-                                        />
                                     </div>
 
                                     <div class="variant-cell__actions">
@@ -422,6 +336,7 @@
             :require-target-selection="compareRoleConfig.requiresExplicitTargetSelection.value"
             @confirm="handleCompareRoleConfigConfirm"
         />
+
     </div>
 </template>
 
@@ -672,7 +587,7 @@ const variantDTestModelKeyModel = computed<string>({
 })
 
 const ALL_VARIANT_IDS: TestVariantId[] = ['a', 'b', 'c', 'd']
-const activeVariantIds = computed<TestVariantId[]>(() => ALL_VARIANT_IDS.slice(0, testColumnCountModel.value))
+const activeVariantIds = computed<TestVariantId[]>(() => ['b'])
 const useStackedVariantControls = computed(() => activeVariantIds.value.length >= 2)
 
 // template 中使用：variantVersionModels[id] / variantModelKeyModels[id]
@@ -749,7 +664,7 @@ watch(
   { immediate: true }
 )
 
-const testGridTemplateColumns = computed(() => `repeat(${testColumnCountModel.value}, minmax(0, 1fr))`)
+const testGridTemplateColumns = computed(() => `repeat(${activeVariantIds.value.length}, minmax(0, 1fr))`)
 
 type ResolvedTestPrompt = { text: string; resolvedVersion: number }
 

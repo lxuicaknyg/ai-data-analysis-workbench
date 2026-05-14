@@ -70,7 +70,7 @@ export type TestPanelVersionValue = 'workspace' | 'previous' | 0 | number
 
 export type TestVariantId = 'a' | 'b' | 'c' | 'd'
 
-export type TestColumnCount = 2 | 3 | 4
+export type TestColumnCount = 1 | 2 | 3 | 4
 
 export interface ProMultiLayoutConfig {
   /** 主布局左侧宽度（百分比，25..50） */
@@ -107,7 +107,7 @@ const createDefaultState = (): ProMultiMessageSessionState => ({
   temporaryVariables: {},
   messageChainMap: {},
   // v2: 多列测试（最多 4 列）
-  layout: { mainSplitLeftPct: 50, testColumnCount: 2 },
+  layout: { mainSplitLeftPct: 50, testColumnCount: 1 },
   testVariants: [
     { id: 'a', version: 0, modelKey: '' },
     { id: 'b', version: 'workspace', modelKey: '' },
@@ -163,7 +163,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
   const temporaryVariables = ref<Record<string, string>>({})
 
   // 多列测试（最多 4 列）
-  const layout = ref<ProMultiLayoutConfig>({ mainSplitLeftPct: 50, testColumnCount: 2 })
+  const layout = ref<ProMultiLayoutConfig>({ mainSplitLeftPct: 50, testColumnCount: 1 })
   const testVariants = ref<TestVariantConfig[]>([
     { id: 'a', version: 0, modelKey: '' },
     { id: 'b', version: 'workspace', modelKey: '' },
@@ -520,7 +520,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
               ? (layoutRecord['mainSplitLeftPct'] as number)
               : defaultState.layout.mainSplitLeftPct
           const countRaw = layoutRecord['testColumnCount']
-          const count: TestColumnCount = countRaw === 2 || countRaw === 3 || countRaw === 4 ? countRaw : defaultState.layout.testColumnCount
+          const count: TestColumnCount = countRaw === 1 || countRaw === 2 || countRaw === 3 || countRaw === 4 ? countRaw : defaultState.layout.testColumnCount
           layout.value = {
             mainSplitLeftPct: Math.min(50, Math.max(25, Math.round(pct))),
             testColumnCount: count,

@@ -57,7 +57,7 @@ defineOptions({
   inheritAttrs: false,
 });
 
-type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite'
+type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite' | 'render'
 
 // Props
 interface Props {
@@ -72,6 +72,7 @@ interface Props {
   enableEdit?: boolean // Mapped to enabledActions
   enableDiff?: boolean // Mapped to enabledActions
   enableFavorite?: boolean // Mapped to enabledActions
+  enableRender?: boolean // Mapped to enabledActions
   height?: string | number
   placeholder?: string
   loading?: boolean
@@ -87,6 +88,7 @@ const props = withDefaults(defineProps<Props>(), {
     enableEdit: true,
     enableDiff: true,
     enableFavorite: true,
+    enableRender: true,
     testId: undefined,
 });
 
@@ -130,6 +132,7 @@ const compareService = computed(() => {
 
 const enabledActions = computed(() => {
     const actions: ActionName[] = ['reasoning'];
+    if (props.enableRender) actions.push('render');
     if (props.enableFullscreen) actions.push('fullscreen');
     if (props.enableDiff) actions.push('diff');
     if (props.enableCopy) actions.push('copy');

@@ -44,6 +44,12 @@ const routes: RouteRecordRaw[] = [
     name: 'pro-variable',
     component: ContextUserWorkspace
   },
+  // ✨ 智能报告模式
+  {
+    path: '/report/analyze',
+    name: 'report-analyze',
+    component: () => import('../components/report-mode/ReportWorkspace.vue')
+  },
   // ✨ Image 模式重构：2 个独立路由
   {
     path: '/image/text2image',

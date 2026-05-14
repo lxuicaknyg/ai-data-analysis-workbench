@@ -10,6 +10,7 @@ export const parseSubModeKey = (path: string): SubModeKey | null => {
   const validSubModes = {
     basic: ['system', 'user'] as const,
     pro: ['multi', 'variable'] as const,
+    report: ['analyze'] as const,
     image: ['text2image', 'image2image', 'multiimage'] as const,
   } as const
 
@@ -19,7 +20,7 @@ export const parseSubModeKey = (path: string): SubModeKey | null => {
     return (validSubModes[mode] as readonly string[]).includes(subMode)
   }
 
-  const match = path.match(/^\/(basic|pro|image)\/([^/]+)$/)
+  const match = path.match(/^\/(basic|pro|report|image)\/([^/]+)$/)
   if (!match) return null
 
   const [, mode, subMode] = match
@@ -51,7 +52,7 @@ export const beforeRouteSwitch: NavigationGuard = (to) => {
   const subModeKey = parseSubModeKey(to.path)
 
   if (subModeKey === null && to.path !== '/') {
-    const match = to.path.match(/^\/(basic|pro|image)/)
+    const match = to.path.match(/^\/(basic|pro|report|image)/)
     if (match) {
       const mode = match[1]
 
@@ -60,6 +61,8 @@ export const beforeRouteSwitch: NavigationGuard = (to) => {
         defaultSubMode = 'text2image'
       } else if (mode === 'pro') {
         defaultSubMode = 'variable'
+      } else if (mode === 'report') {
+        defaultSubMode = 'analyze'
       } else {
         defaultSubMode = 'system'
       }

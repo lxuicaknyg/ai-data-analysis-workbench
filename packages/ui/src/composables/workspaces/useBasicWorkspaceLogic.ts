@@ -127,11 +127,20 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
 
   // ==================== 核心业务逻辑 ====================
 
+  // ==================== 核心业务逻辑 ====================
+
   /**
    * 1. 优化提示词
    */
   const handleOptimize = async () => {
     if (!prompt.value?.trim() || isOptimizing.value) return
+
+    const templateId = selectedTemplateId.value
+
+    if (!templateId) {
+      toast.error(t('toast.error.noOptimizeTemplate'))
+      return
+    }
 
     const promptService = services.value?.promptService
     if (!promptService) {
@@ -139,13 +148,8 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
       return
     }
 
-    const templateId = selectedTemplateId.value
     const modelKey = selectedOptimizeModelKey.value
 
-    if (!templateId) {
-      toast.error(t('toast.error.noOptimizeTemplate'))
-      return
-    }
     if (!modelKey) {
       toast.error(t('toast.error.noOptimizeModel'))
       return
@@ -599,6 +603,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
     handleSwitchVersion,
     handleSwitchToV0,
     loadVersions,
-    handleAnalyze
+    handleAnalyze,
+
   }
 }

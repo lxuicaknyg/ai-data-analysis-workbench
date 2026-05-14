@@ -170,7 +170,7 @@
                     </NButton>
                     <!-- 继续优化按钮 -->
                     <NButton
-                        v-if="optimizedPrompt"
+                        v-if="optimizedPrompt && showIterateButton"
                         @click="handleIterate"
                         :disabled="isIterating"
                         :loading="isIterating"
@@ -218,6 +218,7 @@
             :enable-copy="true"
             :enable-fullscreen="true"
             :enable-edit="true"
+            :enable-render="showRenderTab"
             :placeholder="t('prompt.optimizedPlaceholder')"
             :style="{
                 height: '100%',
@@ -379,6 +380,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    // 是否显示渲染/原文切换标签
+    showRenderTab: {
+        type: Boolean,
+        default: true,
+    },
     evaluationTypeOverride: {
         type: String as () => "prompt-only" | "prompt-iterate" | undefined,
         default: undefined,
@@ -386,6 +392,10 @@ const props = defineProps({
     showApplyButton: {
         type: Boolean,
         default: false,
+    },
+    showIterateButton: {
+        type: Boolean,
+        default: true,
     },
 });
 

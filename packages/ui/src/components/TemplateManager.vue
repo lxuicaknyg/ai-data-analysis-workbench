@@ -65,24 +65,6 @@
         </NButton>
       </NGridItem>
 
-      <!-- 图像 · 文生图 -->
-      <NGridItem>
-        <NButton block :type="currentCategory==='image-text2image-optimize' ? 'primary' : 'default'" @click="currentCategory='image-text2image-optimize'">
-          {{ `🖼️ ${t('templateManager.imageText2ImageTemplates')}` }}
-        </NButton>
-      </NGridItem>
-      <!-- 图像 · 图生图 -->
-      <NGridItem>
-        <NButton block :type="currentCategory==='image-image2image-optimize' ? 'primary' : 'default'" @click="currentCategory='image-image2image-optimize'">
-          {{ `📷 ${t('templateManager.imageImage2ImageTemplates')}` }}
-        </NButton>
-      </NGridItem>
-      <!-- 图像 · 迭代 -->
-      <NGridItem>
-        <NButton block :type="currentCategory==='image-iterate' ? 'primary' : 'default'" @click="currentCategory='image-iterate'">
-          {{ `🌀 ${t('templateManager.imageIterateTemplates')}` }}
-        </NButton>
-      </NGridItem>
     </NGrid>
 
     <!-- 模板列表 -->

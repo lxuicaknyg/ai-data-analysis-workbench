@@ -52,7 +52,7 @@ interface Props {
   title?: string
   mode: 'readonly' | 'editable'
   reasoningMode?: 'show' | 'hide' | 'auto'
-  enabledActions?: ('fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite')[]
+  enabledActions?: ('fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite' | 'render')[]
   streaming?: boolean
   loading?: boolean
   placeholder?: string

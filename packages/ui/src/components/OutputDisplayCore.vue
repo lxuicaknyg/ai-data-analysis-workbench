@@ -10,7 +10,8 @@
       <NFlex v-if="hasToolbar" justify="space-between" align="center" style="flex: 0 0 auto;">
         <!-- 左侧：视图控制按钮组 -->
         <NButtonGroup>
-          <NButton 
+          <NButton
+            v-if="isActionEnabled('render')"
             @click="internalViewMode = 'render'"
             :disabled="internalViewMode === 'render'"
             size="small"
@@ -214,7 +215,7 @@ import type { AppServices } from '../types/services'
 import { router as routerInstance } from '../router'
 import { isValidXmlContent } from '../utils/xml-renderer'
 
-type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite'
+type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite' | 'render'
 
 const { t } = useI18n()
 const { copyText } = useClipboard()
@@ -262,7 +263,7 @@ const props = withDefaults(defineProps<Props>(), {
   testId: undefined,
   mode: 'readonly',
   reasoningMode: 'auto',
-  enabledActions: () => ['fullscreen', 'diff', 'copy', 'edit', 'reasoning', 'favorite'],
+  enabledActions: () => ['fullscreen', 'diff', 'copy', 'edit', 'reasoning', 'favorite', 'render'],
   height: '100%',
   placeholder: ''
 })

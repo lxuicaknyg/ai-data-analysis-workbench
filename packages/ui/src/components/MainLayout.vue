@@ -9,51 +9,53 @@
 
       <NFlex vertical style="position: fixed; inset: 0; width: 100vw; max-height: 100vh; height: 100vh; min-height: 0;">
       <!-- 顶部导航栏 -->
-      <NLayoutHeader class="theme-header nav-header-enhanced">
-        <NFlex justify="space-between" align="center" class="w-full nav-content" :wrap="false" :size="[16, 12]">
+      <NLayoutHeader class="theme-header nav-header-enhanced bank-header">
+        <div class="bank-header-top">
           <!-- 左侧：Logo + 标题 + 核心导航 -->
           <NFlex align="center" :size="16" :wrap="false">
             <!-- Logo + 标题 -->
-            <button
-              type="button"
-              class="brand-link"
-              @click="openBrandWebsite"
-            >
+            <div class="brand-link">
               <NFlex align="center" :size="8" :wrap="false">
                 <AppPreviewImage
                   :src="logoSrc"
                   alt="Logo"
-                  :width="logoSize"
+                  :width="logoSize * 3.5"
                   :height="logoSize"
-                  object-fit="cover"
+                  object-fit="contain"
                   class="logo-image"
                   :show-toolbar="false"
                   :preview-disabled="true"
                   :fallback-src="fallbackLogoSrc"
                 />
+                <span class="brand-divider" aria-hidden="true"></span>
                 <NText class="text-lg sm:text-xl font-bold theme-title" tag="h2">
                   <slot name="title">{{ t('common.appName') }}</slot>
                 </NText>
               </NFlex>
-            </button>
+            </div>
 
             <!-- 核心导航元素 -->
-            <div class="core-navigation">
-              <slot name="core-nav"></slot>
-            </div>
           </NFlex>
 
           <!-- 右侧：操作按钮 -->
+        </div>
+
+        <div class="bank-header-bottom">
+          <div class="core-navigation">
+            <slot name="core-nav"></slot>
+          </div>
+
           <NFlex align="center" :size="8" :wrap="true" justify="end" class="nav-actions">
             <slot name="actions"></slot>
           </NFlex>
-        </NFlex>
+        </div>
       </NLayoutHeader>
 
       <!-- 主要内容区域 - 严格控制在剩余空间内 -->
       <NLayoutContent has-sider
+        class="bank-main-content"
         style="flex: 1; min-height: 0; overflow: hidden;"
-        content-style="height: 100%; max-height: 100%; min-height: 0; box-sizing: border-box; padding: 24px clamp(16px, 2vw, 48px) 40px; display: flex; flex-direction: column; align-items: stretch; overflow: hidden;"
+        content-style="height: 100%; max-height: 100%; min-height: 0; box-sizing: border-box; padding: 18px clamp(18px, 2vw, 32px) 28px; display: flex; flex-direction: column; align-items: stretch; overflow: hidden;"
       >
         <div class="main-content-wrapper">
           <slot name="main"></slot>
@@ -117,29 +119,14 @@ onUnmounted(() => {
 
 const logoSize = computed(() => {
   if (windowWidth.value < 480) {
-    return 20 // 超小屏幕
+    return 28 // 超小屏幕
   } else if (windowWidth.value < 640) {
-    return 24 // 小屏幕
+    return 34 // 小屏幕
   }
-  return 28 // 默认尺寸
+  return 40 // 默认尺寸
 })
 
-const openBrandWebsite = async () => {
-  const url = 'https://always200.com'
 
-  if (typeof window !== 'undefined' && window.electronAPI?.shell) {
-    try {
-      await window.electronAPI.shell.openExternal(url)
-      return
-    } catch (error) {
-      console.error('Failed to open brand website in Electron:', error)
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    window.open(url, '_blank')
-  }
-}
 </script>
 
 <style>
@@ -161,24 +148,59 @@ const openBrandWebsite = async () => {
 
 /* 增强导航栏样式 */
 .nav-header-enhanced {
-  min-height: 64px !important;
-  padding: 12px 16px !important;
+  min-height: 88px !important;
+  padding: 0 !important;
 }
 
-.nav-content {
-  min-height: 40px;
+.bank-header {
+  border-bottom: 1px solid rgba(111, 50, 155, 0.12);
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(43, 27, 67, 0.05);
+}
+
+.bank-main-content {
+  background:
+    linear-gradient(135deg, rgba(111, 50, 155, 0.06), rgba(255, 255, 255, 0) 38%),
+    #f6f7fb;
+}
+
+.bank-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(111, 50, 155, 0.08);
+  background: #ffffff;
+}
+
+.bank-header-bottom {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  height: 44px;
+  padding: 0 26px;
+  background: #ffffff;
 }
 
 .nav-actions {
-  min-height: 40px;
+  min-height: 32px;
+  min-width: 0;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(31, 35, 45, 0.24);
 }
 
 .brand-link {
   display: inline-flex;
   align-items: center;
-  padding: 6px 10px 6px 6px;
+  padding: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: 8px;
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -189,7 +211,7 @@ const openBrandWebsite = async () => {
 }
 
 .brand-link:hover {
-  background: color-mix(in srgb, var(--primary-color, #18a058) 10%, transparent);
+  background: transparent;
   transform: translateY(-1px);
 }
 
@@ -203,19 +225,21 @@ const openBrandWebsite = async () => {
 
 .brand-link:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--primary-color, #18a058) 14%, transparent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #18a058) 28%, transparent);
+  background: rgba(111, 50, 155, 0.1);
+  box-shadow: 0 0 0 2px rgba(111, 50, 155, 0.2);
 }
 
 /* Logo样式优化 */
 .logo-image {
-  border-radius: 6px;
+  border-radius: 0;
+  background: #ffffff;
   transition: transform 0.2s ease-in-out;
   flex-shrink: 0;
 }
 
 /* 标题文字对齐优化 */
 .theme-title {
+  color: #242832;
   line-height: 1.2 !important;
   margin: 0 !important;
   white-space: nowrap;
@@ -226,10 +250,9 @@ const openBrandWebsite = async () => {
 .core-navigation {
   display: flex;
   align-items: center;
-  margin-left: 16px;
-  padding-left: 16px;
-  border-left: 1px solid var(--border-color, rgba(239, 239, 245, 0.6));
-  min-height: 32px;
+  min-width: 0;
+  min-height: 44px;
+  align-self: center;
 }
 
 /* 响应式优化 */
@@ -239,9 +262,21 @@ const openBrandWebsite = async () => {
   }
 
   .core-navigation {
-    margin-left: 8px;
-    padding-left: 8px;
+    min-height: 36px;
   }
+
+  .bank-header-top,
+  .bank-header-bottom {
+    padding-inline: 12px;
+  }
+
+  .bank-header-bottom {
+    grid-template-columns: 1fr;
+    height: auto;
+    gap: 8px;
+    padding-block: 8px;
+  }
+
 }
 
 .custom-select {

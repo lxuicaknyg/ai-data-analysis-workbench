@@ -35,6 +35,7 @@ export type SubModeKey =
   | 'basic-user'
   | 'pro-multi'       // Pro-多消息模式
   | 'pro-variable'    // Pro-变量模式
+  | 'report-analyze'  // 智能报告模式
   | 'image-text2image'  // 文生图
   | 'image-image2image' // 图生图
   | 'image-multiimage' // 多图生图
@@ -44,6 +45,7 @@ const SESSION_STORAGE_KEYS: Record<SubModeKey, string> = {
   'basic-user': 'session/v1/basic-user',
   'pro-multi': 'session/v1/pro-multi',
   'pro-variable': 'session/v1/pro-variable',
+  'report-analyze': 'session/v1/report-analyze',
   'image-text2image': 'session/v1/image-text2image',
   'image-image2image': 'session/v1/image-image2image',
   'image-multiimage': 'session/v1/image-multiimage',
@@ -253,6 +255,9 @@ export const useSessionManager = defineStore('sessionManager', () => {
         case 'image-image2image':
           await useImageImage2ImageSession().saveSession()
           break
+        case 'report-analyze':
+          // 智能报告模式暂无持久化 session store
+          break
         case 'image-multiimage':
           await useImageMultiImageSession().saveSession()
           break
@@ -310,6 +315,9 @@ export const useSessionManager = defineStore('sessionManager', () => {
           break
         case 'image-image2image':
           await useImageImage2ImageSession().restoreSession()
+          break
+        case 'report-analyze':
+          // 智能报告模式暂无持久化 session store
           break
         case 'image-multiimage':
           await useImageMultiImageSession().restoreSession()
@@ -378,6 +386,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
         'basic-user',
         'pro-multi',
         'pro-variable',
+        'report-analyze',
         'image-text2image',
         'image-image2image',
         'image-multiimage',
@@ -431,6 +440,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
         'basic-user',
         'pro-multi',
         'pro-variable',
+        'report-analyze',
         'image-text2image',
         'image-image2image',
         'image-multiimage',

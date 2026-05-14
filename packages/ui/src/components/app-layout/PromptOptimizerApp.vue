@@ -44,11 +44,13 @@
                     <AppHeaderActions
                         @open-templates="openTemplateManager"
                         @open-history="historyManager.showHistory = true"
-                        @open-model-manager="modelManager.showConfig = true"
                         @open-favorites="showFavoriteManager = true"
                         @open-data-manager="showDataManager = true"
                         @open-variables="handleOpenVariableManager()"
+                        @open-datasource="showDatasourceDrawer = true"
+                        @open-user-manual="showUserGuideDrawer = true"
                         :app-version="appVersion"
+                        :is-report-mode="routerInstance.currentRoute.value.path.startsWith('/report')"
                         @open-website="openOfficialWebsite"
                         @open-docs="openDocumentationSite"
                         @open-github="openGithubRepo"
@@ -73,6 +75,7 @@
             </MainLayoutUI>
 
             <!-- Modals and Drawers that are conditionally rendered -->
+            <!-- 模型管理功能已按业务要求暂时隐藏，保留代码便于后续恢复。
             <ModelManagerUI
                 v-if="isReady"
                 v-model:show="modelManager.showConfig"
@@ -83,6 +86,7 @@
                     }
                 "
             />
+            -->
             <TemplateManagerUI
                 v-if="isReady"
                 v-model:show="templateManagerState.showTemplates"
@@ -133,7 +137,28 @@
                 @saved="handleSaveFavoriteComplete"
             />
 
+            <!-- 数据源管理 Drawer（智能报告模式） -->
+            <NDrawer
+                v-model:show="showDatasourceDrawer"
+                :width="420"
+                placement="right"
+            >
+                <NDrawerContent title="数据源管理" :native-scrollbar="false" closable>
+                    <DataSourcePanel />
+                </NDrawerContent>
+            </NDrawer>
+
             <!-- 变量管理弹窗 -->
+            <NDrawer
+                v-model:show="showUserGuideDrawer"
+                :width="760"
+                placement="right"
+            >
+                <NDrawerContent title="用户手册" :native-scrollbar="false" closable>
+                    <ReportUserGuide />
+                </NDrawerContent>
+            </NDrawer>
+
             <VariableManagerModal
                 v-if="isReady"
                 v-model:visible="showVariableManager"
@@ -239,6 +264,8 @@ import { useI18n } from "vue-i18n";
 import {
     NConfigProvider,
     NGlobalStyle,
+    NDrawer,
+    NDrawerContent,
 } from "naive-ui";
 import hljs from "highlight.js/lib/core";
 import jsonLang from "highlight.js/lib/languages/json";
@@ -246,7 +273,8 @@ hljs.registerLanguage("json", jsonLang);
 
 // 内部组件导入
 import MainLayoutUI from '../MainLayout.vue'
-import ModelManagerUI from '../ModelManager.vue'
+// 模型管理功能暂时隐藏，组件导入保留为注释便于后续恢复。
+// import ModelManagerUI from '../ModelManager.vue'
 import TemplateManagerUI from '../TemplateManager.vue'
 import HistoryDrawerUI from '../HistoryDrawer.vue'
 import DataManagerUI from '../DataManager.vue'
@@ -259,6 +287,8 @@ import ContextEditor from '../context-mode/ContextEditor.vue'
 import PromptPreviewPanel from '../PromptPreviewPanel.vue'
 import AppHeaderActions from './AppHeaderActions.vue'
 import AppCoreNav from './AppCoreNav.vue'
+import DataSourcePanel from '../report-mode/DataSourcePanel.vue'
+import ReportUserGuide from '../report-mode/ReportUserGuide.vue'
 import rootPackageJson from '../../../../../package.json'
 
 // Composables - 使用 barrel exports
@@ -613,6 +643,8 @@ const servicesForContextEditor = computed(() => services?.value || null);
 // 6. 创建所有必要的引用
 const promptService = shallowRef<IPromptService | null>(null);
 const showDataManager = ref(false);
+const showDatasourceDrawer = ref(false);
+const showUserGuideDrawer = ref(false);
 
 type ContextWorkspaceExpose = {
     // Vue ComponentPublicInstance 会自动 unwrap expose 里的 Ref，因此这里使用已解包的类型
@@ -1946,7 +1978,8 @@ const handleTemplateManagerClosed = () => {
     }
 };
 
-// 提供 openModelManager 接口
+/*
+// 模型管理功能已按业务要求暂时隐藏，暂不向工作区提供 openModelManager 接口。
 const openModelManager = (tab: "text" | "image" | "function" = "text") => {
     modelManager.showConfig = true;
     setTimeout(() => {
@@ -1958,6 +1991,7 @@ const openModelManager = (tab: "text" | "image" | "function" = "text") => {
     }, 0);
 };
 provide("openModelManager", openModelManager);
+*/
 
 // 提供 openContextEditor 接口（供 Pro Multi 等工作区直接调用）
 type ContextEditorOpenArg = ConversationMessage[] | "messages" | "variables" | "tools";

@@ -182,6 +182,10 @@ storybook-static
 
 prompt-optimizer-datas
 prompt-optimizer-data
+scratch/
+ecosystem.config.cjs
+prompt-optimizer部署.md
+scripts/build-report-integration-deck.js
 .claude
 .playwright-mcp
 nul

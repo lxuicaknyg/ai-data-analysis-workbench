@@ -21,11 +21,11 @@
       {{ t('nav.contextMode') }}
     </NRadioButton>
     <NRadioButton
-      data-testid="function-mode-image"
-      value="image"
-      :title="t('nav.imageMode')"
+      data-testid="function-mode-report"
+      value="report"
+      :title="t('nav.reportMode')"
     >
-      {{ t('nav.imageMode') }}
+      {{ t('nav.reportMode') }}
     </NRadioButton>
   </NRadioGroup>
 </template>
@@ -37,12 +37,12 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
 interface Props {
-  modelValue: 'basic' | 'pro' | 'image'
+  modelValue: 'basic' | 'pro' | 'report'
 }
 
 interface Emits {
-  (e: 'update:modelValue', value: 'basic' | 'pro' | 'image'): void
-  (e: 'change', value: 'basic' | 'pro' | 'image'): void
+  (e: 'update:modelValue', value: 'basic' | 'pro' | 'report'): void
+  (e: 'change', value: 'basic' | 'pro' | 'report'): void
 }
 
 defineProps<Props>()
@@ -51,7 +51,7 @@ const emit = defineEmits<Emits>()
 /**
  * 更新功能模式
  */
-const updateFunctionMode = (mode: 'basic' | 'pro' | 'image') => {
+const updateFunctionMode = (mode: 'basic' | 'pro' | 'report') => {
   emit('update:modelValue', mode)
   emit('change', mode)
 }
