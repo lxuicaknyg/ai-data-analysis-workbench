@@ -307,5 +307,6 @@ async function handleExecute() {
   font-size: 13px;
   text-align: center;
   line-height: 1.8;
+  color: #a973c1;
 }
 </style>

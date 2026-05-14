@@ -55,6 +55,7 @@ export function useNaiveTheme() {
   const switchToBlueTheme = () => changeTheme('blue')
   const switchToGreenTheme = () => changeTheme('green')
   const switchToPurpleTheme = () => changeTheme('purple')
+  const switchToCebbTheme = () => changeTheme('cebb')
   
   // 检查当前是否为特定主题
   const isLightTheme = computed(() => themeId.value === 'light')
@@ -62,6 +63,7 @@ export function useNaiveTheme() {
   const isBlueTheme = computed(() => themeId.value === 'blue')
   const isGreenTheme = computed(() => themeId.value === 'green')
   const isPurpleTheme = computed(() => themeId.value === 'purple')
+  const isCebbTheme = computed(() => themeId.value === 'cebb')
   
   // 初始化主题
   const initTheme = () => {
@@ -84,6 +86,7 @@ export function useNaiveTheme() {
     isBlueTheme,
     isGreenTheme,
     isPurpleTheme,
+    isCebbTheme,
     
     // 主题切换方法
     changeTheme,
@@ -93,6 +96,7 @@ export function useNaiveTheme() {
     switchToBlueTheme,
     switchToGreenTheme,
     switchToPurpleTheme,
+    switchToCebbTheme,
     
     // 工具方法
     initTheme,

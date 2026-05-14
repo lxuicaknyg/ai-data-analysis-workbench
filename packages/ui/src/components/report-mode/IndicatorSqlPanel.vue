@@ -371,6 +371,7 @@ function handleAddIndicator() {
   text-align: center;
   line-height: 1.8;
   font-size: 13px;
+  color: #a973c1;
 }
 
 .indicator-list {
