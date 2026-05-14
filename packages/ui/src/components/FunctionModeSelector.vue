@@ -7,6 +7,13 @@
     class="function-mode-selector"
   >
     <NRadioButton
+      data-testid="function-mode-report"
+      value="report"
+      :title="t('nav.reportMode')"
+    >
+      {{ t('nav.reportMode') }}
+    </NRadioButton>
+    <NRadioButton
       data-testid="function-mode-basic"
       value="basic"
       :title="t('nav.basicMode')"
@@ -19,13 +26,6 @@
       :title="t('nav.contextMode')"
     >
       {{ t('nav.contextMode') }}
-    </NRadioButton>
-    <NRadioButton
-      data-testid="function-mode-report"
-      value="report"
-      :title="t('nav.reportMode')"
-    >
-      {{ t('nav.reportMode') }}
     </NRadioButton>
   </NRadioGroup>
 </template>

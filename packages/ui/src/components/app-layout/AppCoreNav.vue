@@ -69,6 +69,11 @@ const navItems: Array<{
     children: Array<{ label: string; path: string }>
 }> = [
     {
+        key: 'report',
+        label: '智能报告',
+        children: [],
+    },
+    {
         key: 'basic',
         label: '基础',
         children: [
@@ -83,11 +88,6 @@ const navItems: Array<{
             { label: '系统优化', path: '/pro/multi' },
             { label: '用户提示词优化', path: '/pro/variable' },
         ],
-    },
-    {
-        key: 'report',
-        label: '智能报告',
-        children: [],
     },
 ]
 
