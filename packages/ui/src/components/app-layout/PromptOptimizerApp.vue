@@ -49,6 +49,7 @@
                         @open-variables="handleOpenVariableManager()"
                         @open-datasource="showDatasourceDrawer = true"
                         @open-user-manual="showUserGuideDrawer = true"
+                        @open-user-management="handleOpenUserManagement"
                         :app-version="appVersion"
                         :is-report-mode="routerInstance.currentRoute.value.path.startsWith('/report')"
                         @open-website="openOfficialWebsite"
@@ -332,6 +333,7 @@ import { initializeI18nWithStorage, setI18nServices } from '../../plugins/i18n'
 import { setPiniaServices, getPiniaServices } from '../../plugins/pinia'
 // ⚠️ Codex 建议：改用直接路径导入，避免 barrel exports 循环依赖导致 TDZ
 import { useSessionManager, type SubModeKey } from '../../stores/session/useSessionManager'
+import { useAuthStore } from '../../stores/auth/useAuthStore'
 import { useBasicSystemSession } from '../../stores/session/useBasicSystemSession'
 import { useBasicUserSession } from '../../stores/session/useBasicUserSession'
 import { useProMultiMessageSession } from '../../stores/session/useProMultiMessageSession'
@@ -417,6 +419,10 @@ const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
 
 // 2. 初始化应用服务
 const { services, isInitializing, startupRepairReport } = useAppInitializer();
+
+// 🔐 初始化认证状态
+const authStore = useAuthStore();
+authStore.restoreSession();
 
 const hasShownStartupRepairToast = ref(false)
 
@@ -811,6 +817,11 @@ const handleOpenVariableManager = (variableName?: string) => {
         focusVariableName.value = variableName;
     }
     showVariableManager.value = true;
+};
+
+// 🔐 打开用户管理页面
+const handleOpenUserManagement = () => {
+    routerInstance.push('/admin/users');
 };
 
 // 🆕 AI 变量提取处理函数

@@ -80,6 +80,21 @@
         </template>
     </ActionButtonUI>
 
+    <!-- 🔐 用户管理（仅管理员可见） -->
+    <ActionButtonUI
+        v-if="authStore.isAdmin"
+        text="用户管理"
+        @click="emit('open-user-management')"
+        type="default"
+        size="small"
+        :ghost="false"
+        :round="true"
+    >
+        <template #icon>
+            <NIcon class="bank-action-icon"><Users /></NIcon>
+        </template>
+    </ActionButtonUI>
+
     <ActionButtonUI
         text="用户手册"
         @click="emit('open-user-manual')"
@@ -92,12 +107,28 @@
             <NIcon class="bank-action-icon"><Help /></NIcon>
         </template>
     </ActionButtonUI>
+
+    <!-- 🔐 登出按钮 -->
+    <ActionButtonUI
+        text="登出"
+        @click="handleLogout"
+        type="default"
+        size="small"
+        :ghost="false"
+        :round="true"
+    >
+        <template #icon>
+            <NIcon class="bank-action-icon"><Logout /></NIcon>
+        </template>
+    </ActionButtonUI>
 </template>
 
 <script setup lang="ts">
 import { NIcon } from 'naive-ui'
-import { Database, DeviceFloppy, FileText, Help, History, Star, Variable } from '@vicons/tabler'
+import { Database, DeviceFloppy, FileText, Help, History, Logout, Star, Users, Variable } from '@vicons/tabler'
 import ActionButtonUI from '../ActionButton.vue'
+import { useAuthStore } from '../../stores/auth/useAuthStore'
+import { router } from '../../router'
 
 interface Props {
     appVersion: string
@@ -105,6 +136,8 @@ interface Props {
 }
 
 defineProps<Props>()
+
+const authStore = useAuthStore()
 
 const emit = defineEmits<{
     'open-templates': []
@@ -118,7 +151,13 @@ const emit = defineEmits<{
     'open-docs': []
     'open-github': []
     'open-user-manual': []
+    'open-user-management': []
 }>()
+
+const handleLogout = () => {
+    authStore.logout()
+    router.push('/login')
+}
 </script>
 
 <style scoped>
