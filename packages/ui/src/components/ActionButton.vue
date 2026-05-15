@@ -58,9 +58,18 @@ const buttonSize = computed(() => props.size)
 .action-button {
   /* 保持与原有主题系统的兼容性 */
   transition: all 0.2s ease;
+  color: #000000 !important;
 }
 
 .action-button:hover {
   transform: translateY(-1px);
+}
+
+.action-button .n-button__text {
+  color: #000000 !important;
+}
+
+.action-button:hover .n-button__text {
+  color: #000000 !important;
 }
 </style>

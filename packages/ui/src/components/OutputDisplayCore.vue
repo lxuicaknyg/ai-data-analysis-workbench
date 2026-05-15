@@ -581,4 +581,17 @@ defineExpose({ resetReasoningState, forceRefreshContent, forceExitEditing })
 .output-toolbar-action-group {
   flex-shrink: 0;
 }
+
+/* 视图切换按钮（渲染/原文）文字颜色 */
+:deep(.n-button-group > .n-button) {
+  color: #000000 !important;
+}
+
+:deep(.n-button-group > .n-button.n-button--disabled) {
+  color: #000000 !important;
+}
+
+:deep(.n-button-group > .n-button.n-button--primary) {
+  color: #ffffff !important;
+}
 </style>

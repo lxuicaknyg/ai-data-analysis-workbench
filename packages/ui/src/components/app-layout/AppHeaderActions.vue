@@ -128,14 +128,20 @@ const emit = defineEmits<{
     padding: 0 12px !important;
     border-color: rgba(111, 50, 155, 0.16) !important;
     background: rgba(255, 255, 255, 0.96) !important;
-    color: #6b547d !important;
     box-shadow: 0 1px 5px rgba(43, 27, 67, 0.04);
+}
+
+:deep(.action-button .n-button__text) {
+    color: #000000 !important;
 }
 
 :deep(.action-button:hover) {
     border-color: rgba(111, 50, 155, 0.32) !important;
     background: rgba(111, 50, 155, 0.055) !important;
-    color: #6f329b !important;
+}
+
+:deep(.action-button:hover .n-button__text) {
+    color: #000000 !important;
 }
 
 :deep(.action-button .n-button__icon) {
@@ -148,7 +154,7 @@ const emit = defineEmits<{
 }
 
 .bank-action-icon {
-    color: #7b3fb2;
+    color: #a973c1;
     font-size: 13px;
 }
 </style>

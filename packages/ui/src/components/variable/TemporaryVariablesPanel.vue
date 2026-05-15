@@ -7,7 +7,7 @@
         :style="{ flexShrink: 0 }"
     >
         <template #header-extra>
-            <NSpace :size="8">
+            <NSpace :size="8" class="variable-panel-actions">
                 <NButton
                     v-if="props.showGenerateValues"
                     size="small"
@@ -543,3 +543,17 @@ watch(displayVariables, (variableNames) => {
     }
 })
 </script>
+
+<style scoped>
+/* 
+ * 将变量面板头部按钮的文字颜色从紫色改为黑色
+ * 涉及按钮：智能填充变量值、操作、收起
+ */
+.variable-panel-actions :deep(.n-button) {
+    color: #000000 !important;
+}
+
+.variable-panel-actions :deep(.n-button .n-button__text) {
+    color: #000000 !important;
+}
+</style>
