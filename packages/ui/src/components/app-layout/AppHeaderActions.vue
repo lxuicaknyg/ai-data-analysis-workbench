@@ -108,27 +108,13 @@
         </template>
     </ActionButtonUI>
 
-    <!-- 🔐 登出按钮 -->
-    <ActionButtonUI
-        text="登出"
-        @click="handleLogout"
-        type="default"
-        size="small"
-        :ghost="false"
-        :round="true"
-    >
-        <template #icon>
-            <NIcon class="bank-action-icon"><Logout /></NIcon>
-        </template>
-    </ActionButtonUI>
-</template>
+    </template>
 
 <script setup lang="ts">
 import { NIcon } from 'naive-ui'
-import { Database, DeviceFloppy, FileText, Help, History, Logout, Star, Users, Variable } from '@vicons/tabler'
+import { Database, DeviceFloppy, FileText, Help, History, Star, Users, Variable } from '@vicons/tabler'
 import ActionButtonUI from '../ActionButton.vue'
 import { useAuthStore } from '../../stores/auth/useAuthStore'
-import { router } from '../../router'
 
 interface Props {
     appVersion: string
@@ -153,11 +139,6 @@ const emit = defineEmits<{
     'open-user-manual': []
     'open-user-management': []
 }>()
-
-const handleLogout = () => {
-    authStore.logout()
-    router.push('/login')
-}
 </script>
 
 <style scoped>

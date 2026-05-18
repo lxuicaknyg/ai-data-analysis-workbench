@@ -37,7 +37,8 @@
             <!-- 核心导航元素 -->
           </NFlex>
 
-          <!-- 右侧：操作按钮 -->
+          <!-- 右侧：用户信息 -->
+          <slot name="user-info"></slot>
         </div>
 
         <div class="bank-header-bottom">

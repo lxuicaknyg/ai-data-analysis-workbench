@@ -28,7 +28,16 @@
             <p>{{ t("log.info.initializing") }}</p>
         </div>
         <template v-else>
-            <MainLayoutUI>
+            <!-- 登录页面不显示布局 -->
+            <template v-if="routerInstance.currentRoute.value.path === '/login'">
+                <RouterView v-slot="{ Component, route: viewRoute }">
+                    <component
+                        :is="Component"
+                        :key="viewRoute.fullPath"
+                    />
+                </RouterView>
+            </template>
+            <MainLayoutUI v-else>
                 <!-- Title Slot -->
                 <template #title>
                     {{ t("promptOptimizer.title") }}
@@ -37,6 +46,28 @@
                 <!-- Core Navigation Slot -->
                 <template #core-nav>
                     <AppCoreNav />
+                </template>
+
+                <!-- User Info Slot (用户名 + 登出) -->
+                <template #user-info>
+                    <div class="user-info-container">
+                        <span class="username">
+                            <NIcon class="user-icon"><User /></NIcon>
+                            {{ authStore.user?.username }}
+                        </span>
+                        <ActionButtonUI
+                            text="登出"
+                            @click="handleLogout"
+                            type="default"
+                            size="small"
+                            :ghost="false"
+                            :round="true"
+                        >
+                            <template #icon>
+                                <NIcon class="logout-icon"><Logout /></NIcon>
+                            </template>
+                        </ActionButtonUI>
+                    </div>
                 </template>
 
                 <!-- Actions Slot -->
@@ -288,6 +319,9 @@ import ContextEditor from '../context-mode/ContextEditor.vue'
 import PromptPreviewPanel from '../PromptPreviewPanel.vue'
 import AppHeaderActions from './AppHeaderActions.vue'
 import AppCoreNav from './AppCoreNav.vue'
+import ActionButtonUI from '../ActionButton.vue'
+import { NIcon } from 'naive-ui'
+import { User, Logout } from '@vicons/tabler'
 import DataSourcePanel from '../report-mode/DataSourcePanel.vue'
 import ReportUserGuide from '../report-mode/ReportUserGuide.vue'
 import rootPackageJson from '../../../../../package.json'
@@ -822,6 +856,12 @@ const handleOpenVariableManager = (variableName?: string) => {
 // 🔐 打开用户管理页面
 const handleOpenUserManagement = () => {
     routerInstance.push('/admin/users');
+};
+
+// 🔐 登出处理
+const handleLogout = () => {
+    authStore.logout();
+    routerInstance.push('/login');
 };
 
 // 🆕 AI 变量提取处理函数
@@ -2372,6 +2412,32 @@ onBeforeUnmount(async () => {
 </script>
 
 <style scoped>
+/* 用户信息容器样式 */
+.user-info-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.username {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+.user-icon {
+    color: #a973c1;
+    font-size: 16px;
+}
+
+.logout-icon {
+    color: #a973c1;
+    font-size: 13px;
+}
+
 .active-button {
     background-color: var(--primary-color, #3b82f6) !important;
     color: white !important;
