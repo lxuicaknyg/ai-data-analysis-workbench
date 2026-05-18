@@ -75,6 +75,7 @@
                     <AppHeaderActions
                         @open-templates="openTemplateManager"
                         @open-history="historyManager.showHistory = true"
+                        @open-model-manager="openModelManager"
                         @open-favorites="showFavoriteManager = true"
                         @open-data-manager="showDataManager = true"
                         @open-variables="handleOpenVariableManager()"
@@ -107,18 +108,16 @@
             </MainLayoutUI>
 
             <!-- Modals and Drawers that are conditionally rendered -->
-            <!-- 模型管理功能已按业务要求暂时隐藏，保留代码便于后续恢复。
             <ModelManagerUI
-                v-if="isReady"
+                v-if="isReady && authStore.isAdmin"
                 v-model:show="modelManager.showConfig"
-                @models-updated="handleTextModelsUpdated"
+                :services="services"
                 @update:show="
                     (v: boolean) => {
                         if (!v) handleModelManagerClosed();
                     }
                 "
             />
-            -->
             <TemplateManagerUI
                 v-if="isReady"
                 v-model:show="templateManagerState.showTemplates"
@@ -305,8 +304,7 @@ hljs.registerLanguage("json", jsonLang);
 
 // 内部组件导入
 import MainLayoutUI from '../MainLayout.vue'
-// 模型管理功能暂时隐藏，组件导入保留为注释便于后续恢复。
-// import ModelManagerUI from '../ModelManager.vue'
+import ModelManagerUI from '../ModelManager.vue'
 import TemplateManagerUI from '../TemplateManager.vue'
 import HistoryDrawerUI from '../HistoryDrawer.vue'
 import DataManagerUI from '../DataManager.vue'
@@ -2029,20 +2027,20 @@ const handleTemplateManagerClosed = () => {
     }
 };
 
-/*
-// 模型管理功能已按业务要求暂时隐藏，暂不向工作区提供 openModelManager 接口。
+// 🔐 模型管理功能（仅管理员可用）
 const openModelManager = (tab: "text" | "image" | "function" = "text") => {
-    modelManager.showConfig = true;
-    setTimeout(() => {
-        if (typeof window !== "undefined") {
-            window.dispatchEvent(
-                new CustomEvent("model-manager:set-tab", { detail: tab }),
-            );
-        }
-    }, 0);
+    if (authStore.isAdmin) {
+        modelManager.showConfig = true;
+        setTimeout(() => {
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                    new CustomEvent("model-manager:set-tab", { detail: tab }),
+                );
+            }
+        }, 0);
+    }
 };
 provide("openModelManager", openModelManager);
-*/
 
 // 提供 openContextEditor 接口（供 Pro Multi 等工作区直接调用）
 type ContextEditorOpenArg = ConversationMessage[] | "messages" | "variables" | "tools";
