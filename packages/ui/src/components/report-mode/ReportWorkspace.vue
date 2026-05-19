@@ -320,6 +320,60 @@ const followupInputRef = ref<InstanceType<typeof NInput> | null>(null)
  */
 const followupHistory = ref<string[]>([])
 
+// 会话ID - 每次新会话生成一个唯一ID
+const currentSessionId = ref('')
+
+const generateSessionId = () => {
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+}
+
+// 后端认证服务基础URL
+const AUTH_SERVER_BASE = 'http://localhost:3001'
+
+// 保存聊天历史记录
+const saveChatHistory = async (data: {
+  userInput: string
+  sessionId: string
+  reportType?: string
+  period?: string
+  optimizedPrompt: string
+}) => {
+  try {
+    const storedUser = localStorage.getItem('user')
+    if (!storedUser) {
+      console.warn('用户未登录，无法保存聊天历史')
+      return
+    }
+    
+    const userInfo = JSON.parse(storedUser)
+    const token = userInfo.token
+    
+    if (!token) {
+      console.warn('没有token，无法保存聊天历史')
+      return
+    }
+
+    await fetch(`${AUTH_SERVER_BASE}/api/chat-history`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        user_id: String(userInfo.id),
+        session_id: data.sessionId,
+        user_input: data.userInput,
+        report_type: data.reportType || null,
+        period: data.period || null,
+        optimized_prompt: data.optimizedPrompt,
+        status: 'completed'
+      })
+    })
+  } catch (err) {
+    console.error('保存历史记录失败', err)
+  }
+}
+
 // ========================
 // 分割线拖拽
 // ========================
@@ -380,6 +434,8 @@ const handleOptimize = async () => {
     setRawPromptResult('')
     // 新一次会话，清空上一次残留的追问历史
     followupHistory.value = []
+    // 生成新的会话ID
+    currentSessionId.value = generateSessionId()
 
     try {
         const res = await fetch(BANK_REPORT_AGENT_URL, {
@@ -404,6 +460,14 @@ const handleOptimize = async () => {
             applyOptimizeResult(data)
             isLoading.value = false
             toast.success('报告 Prompt 生成成功')
+            // 保存聊天历史记录
+            await saveChatHistory({
+                userInput: prompt.value,
+                sessionId: currentSessionId.value,
+                reportType: '',
+                period: '',
+                optimizedPrompt: data.optimized_prompt || ''
+            })
         }
     } catch (e) {
         isLoading.value = false
@@ -451,6 +515,14 @@ const handleFollowup = async () => {
             showClarification.value = false
             isLoading.value = false
             toast.success('报告 Prompt 生成成功')
+            // 保存聊天历史记录（追问流程完成后）
+            await saveChatHistory({
+                userInput: prompt.value,
+                sessionId: currentSessionId.value,
+                reportType: '',
+                period: '',
+                optimizedPrompt: data.optimized_prompt || ''
+            })
         }
     } catch (e) {
         isLoading.value = false

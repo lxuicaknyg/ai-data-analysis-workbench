@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { testConnection } from './config/database';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
+import chatHistoryRoutes from './routes/chatHistory';
 
 dotenv.config();
 
@@ -11,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:18181', 'http://localhost:18182'],
+  origin: ['http://localhost:5173', 'http://localhost:18181', 'http://localhost:18182', 'http://localhost:3002'],
   credentials: true
 }));
 
@@ -19,6 +20,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/chat-history', chatHistoryRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ success: true, message: 'Server is running', timestamp: new Date().toISOString() });
