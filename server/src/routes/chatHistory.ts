@@ -6,10 +6,12 @@ const router = express.Router();
 
 router.post('/', authenticateToken, async (req, res) => {
   try {
+    console.log('[DEBUG] Creating chat history with data:', req.body);
     const history = await chatHistoryService.create(req.body);
     res.status(201).json(history);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create chat history' });
+    console.error('[ERROR] Failed to create chat history:', error);
+    res.status(500).json({ error: 'Failed to create chat history', details: error instanceof Error ? error.message : String(error) });
   }
 });
 

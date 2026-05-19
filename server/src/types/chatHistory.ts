@@ -6,6 +6,8 @@ export interface ChatHistory {
   report_type?: string;
   period?: string;
   optimized_prompt?: string;
+  execution_prompt?: string;
+  generated_report?: string;
   status: 'pending' | 'completed' | 'failed';
   error_message?: string;
   created_at: Date;
@@ -19,6 +21,8 @@ export interface CreateChatHistoryRequest {
   report_type?: string;
   period?: string;
   optimized_prompt?: string;
+  execution_prompt?: string;
+  generated_report?: string;
   status?: 'pending' | 'completed' | 'failed';
   error_message?: string;
 }
@@ -27,6 +31,8 @@ export interface UpdateChatHistoryRequest {
   report_type?: string;
   period?: string;
   optimized_prompt?: string;
+  execution_prompt?: string;
+  generated_report?: string;
   status?: 'pending' | 'completed' | 'failed';
   error_message?: string;
 }

@@ -100,14 +100,20 @@ import { DataTransformer } from '../../utils/data-transformer'
 import OutputDisplay from '../OutputDisplay.vue'
 import SelectWithConfig from '../SelectWithConfig.vue'
 
-const props = defineProps<{ prompt: string }>()
+const props = defineProps<{ 
+  prompt: string 
+  result?: string
+}>()
+const emit = defineEmits<{
+  (e: 'report-generated', result: string): void
+}>()
 const STORAGE_KEY_REPORT_MODEL = 'report/v1/execute_model'
 
 const services = inject<Ref<AppServices | null>>('services')
 
 const selectedModelKey = ref(loadSavedModelKey())
 const modelOptions = ref<ModelSelectOption[]>([])
-const result = ref('')
+const result = ref(props.result || '')
 const isRunning = ref(false)
 const error = ref('')
 
@@ -214,6 +220,8 @@ async function handleExecute() {
           const fenceMatch = trimmed.match(/^```(?:\w*)\n([\s\S]*?)\n?```\s*$/)
           if (fenceMatch) result.value = fenceMatch[1]
           isRunning.value = false
+          // 触发报告生成完成事件
+          emit('report-generated', result.value)
         },
         onError: (e: Error) => { error.value = e.message; isRunning.value = false },
       }
