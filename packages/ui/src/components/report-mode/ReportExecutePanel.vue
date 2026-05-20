@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, type Ref } from 'vue'
+import { ref, computed, inject, onMounted, watch, type Ref } from 'vue'
 import { NCard, NFlex, NText, NButton, NTooltip } from 'naive-ui'
 import type { AppServices } from '../../types/services'
 import type { ModelSelectOption } from '../../types/select-options'
@@ -116,6 +116,13 @@ const modelOptions = ref<ModelSelectOption[]>([])
 const result = ref(props.result || '')
 const isRunning = ref(false)
 const error = ref('')
+
+// 监听props.result变化，同步更新报告内容
+watch(() => props.result, (newResult) => {
+  if (newResult !== undefined) {
+    result.value = newResult
+  }
+})
 
 const canExecute = computed(() =>
   !!props.prompt.trim() && !!selectedModelKey.value && !isRunning.value
