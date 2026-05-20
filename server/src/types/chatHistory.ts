@@ -3,8 +3,6 @@ export interface ChatHistory {
   user_id: string;
   session_id: string;
   user_input: string;
-  report_type?: string;
-  period?: string;
   optimized_prompt?: string;
   execution_prompt?: string;
   generated_report?: string;
@@ -18,8 +16,6 @@ export interface CreateChatHistoryRequest {
   user_id: string;
   session_id: string;
   user_input: string;
-  report_type?: string;
-  period?: string;
   optimized_prompt?: string;
   execution_prompt?: string;
   generated_report?: string;
@@ -28,8 +24,6 @@ export interface CreateChatHistoryRequest {
 }
 
 export interface UpdateChatHistoryRequest {
-  report_type?: string;
-  period?: string;
   optimized_prompt?: string;
   execution_prompt?: string;
   generated_report?: string;

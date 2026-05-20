@@ -3,12 +3,12 @@ import { ChatHistory, CreateChatHistoryRequest, UpdateChatHistoryRequest } from 
 
 export class ChatHistoryService {
   async create(chatHistory: CreateChatHistoryRequest): Promise<ChatHistory> {
-    const { user_id, session_id, user_input, report_type, period, optimized_prompt, execution_prompt, generated_report, status, error_message } = chatHistory;
+    const { user_id, session_id, user_input, optimized_prompt, execution_prompt, generated_report, status, error_message } = chatHistory;
     
     const [result] = await pool.execute(
-      `INSERT INTO chat_history (user_id, session_id, user_input, report_type, period, optimized_prompt, execution_prompt, generated_report, status, error_message)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [user_id, session_id, user_input, report_type || null, period || null, optimized_prompt || null, execution_prompt || null, generated_report || null, status || 'pending', error_message || null]
+      `INSERT INTO chat_history (user_id, session_id, user_input, optimized_prompt, execution_prompt, generated_report, status, error_message)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [user_id, session_id, user_input, optimized_prompt || null, execution_prompt || null, generated_report || null, status || 'pending', error_message || null]
     );
     
     const insertResult = result as { insertId: number };
@@ -45,14 +45,6 @@ export class ChatHistoryService {
     const fields: string[] = [];
     const values: any[] = [];
 
-    if (updates.report_type !== undefined) {
-      fields.push('report_type = ?');
-      values.push(updates.report_type);
-    }
-    if (updates.period !== undefined) {
-      fields.push('period = ?');
-      values.push(updates.period);
-    }
     if (updates.optimized_prompt !== undefined) {
       fields.push('optimized_prompt = ?');
       values.push(updates.optimized_prompt);

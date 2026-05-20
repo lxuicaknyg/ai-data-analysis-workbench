@@ -385,8 +385,6 @@ const AUTH_SERVER_BASE = 'http://localhost:3001'
 const saveChatHistory = async (data: {
   userInput: string
   sessionId: string
-  reportType?: string
-  period?: string
   optimizedPrompt: string
   executionPrompt?: string
   generatedReport?: string
@@ -416,8 +414,6 @@ const saveChatHistory = async (data: {
         user_id: String(userInfo.id),
         session_id: data.sessionId,
         user_input: data.userInput,
-        report_type: data.reportType || null,
-        period: data.period || null,
         optimized_prompt: data.optimizedPrompt,
         execution_prompt: data.executionPrompt || null,
         generated_report: data.generatedReport || null,
@@ -452,8 +448,6 @@ interface ChatHistoryItem {
   user_id: string
   session_id: string
   user_input: string
-  report_type?: string
-  period?: string
   optimized_prompt?: string
   execution_prompt?: string
   generated_report?: string
@@ -712,8 +706,6 @@ const handleOptimize = async () => {
             await saveChatHistory({
                 userInput: prompt.value,
                 sessionId: currentSessionId.value,
-                reportType: '',
-                period: '',
                 optimizedPrompt: data.optimized_prompt || ''
             })
             // 刷新历史列表
@@ -769,8 +761,6 @@ const handleFollowup = async () => {
             await saveChatHistory({
                 userInput: prompt.value,
                 sessionId: currentSessionId.value,
-                reportType: '',
-                period: '',
                 optimizedPrompt: data.optimized_prompt || ''
             })
             // 刷新历史列表
