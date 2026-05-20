@@ -277,7 +277,7 @@
  * 注意：所有状态（包括 showClarificationModal）使用组件本地 ref，
  * 确保 NModal 的 v-model 绑定到本地 ref，避免响应式失效问题。
  */
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NCard, NFlex, NText, NButton, NIcon, NInput, NSelect, NScrollbar, NSpin } from 'naive-ui'
 import { useToast } from '../../composables/ui/useToast'
@@ -384,6 +384,7 @@ const AUTH_SERVER_BASE = 'http://localhost:3001'
 // 保存聊天历史记录
 const saveChatHistory = async (data: {
   userInput: string
+  username: string
   sessionId: string
   optimizedPrompt: string
   executionPrompt?: string
@@ -412,6 +413,7 @@ const saveChatHistory = async (data: {
       },
       body: JSON.stringify({
         user_id: String(userInfo.id),
+        username: data.username,
         session_id: data.sessionId,
         user_input: data.userInput,
         optimized_prompt: data.optimizedPrompt,
@@ -611,10 +613,105 @@ const formatDate = (dateStr: string) => {
 
 // 组件挂载时尝试加载历史记录（如果侧边栏已打开）
 onMounted(() => {
+  // 初始化当前用户 ID
+  const storedUser = localStorage.getItem('user')
+  if (storedUser) {
+    const userInfo = JSON.parse(storedUser)
+    currentUserIdRef.value = userInfo.id
+  }
+  
   if (showSidebar.value) {
     loadChatHistory()
   }
+  
+  // 监听用户变化，用户切换时重置状态
+  // 注意：storage 事件只在其他标签页修改 localStorage 时触发
+  window.addEventListener('storage', handleUserChange)
+  
+  // 当前标签页主动轮询检测用户变化（每 500ms 检查一次）
+  checkUserChangeInterval = setInterval(checkUserChange, 500)
 })
+// 组件卸载时清理监听器
+onUnmounted(() => {
+  window.removeEventListener('storage', handleUserChange)
+  if (checkUserChangeInterval) {
+    clearInterval(checkUserChangeInterval)
+  }
+})
+
+// 轮询检测用户变化
+let checkUserChangeInterval: number | null = null
+let lastUserId: string | null = null
+
+// 检查用户变化
+const checkUserChange = () => {
+  const storedUser = localStorage.getItem('user')
+  const currentUserId = storedUser ? JSON.parse(storedUser).id : null
+  
+  // 检测用户变化（登录/登出/切换用户）
+  if (lastUserId === null && currentUserId !== null) {
+    // 用户登录
+    lastUserId = currentUserId
+  } else if (lastUserId !== null && currentUserId === null) {
+    // 用户登出
+    lastUserId = null
+    resetWorkspaceState()
+  } else if (lastUserId !== null && currentUserId !== null && lastUserId !== currentUserId) {
+    // 用户切换
+    lastUserId = currentUserId
+    resetWorkspaceState()
+  }
+}
+
+// 处理用户变化（登录/登出/切换用户）- 用于其他标签页
+const handleUserChange = () => {
+  const storedUser = localStorage.getItem('user')
+  if (!storedUser) {
+    // 用户登出，重置所有状态
+    resetWorkspaceState()
+    return
+  }
+  
+  const userInfo = JSON.parse(storedUser)
+  // 检查是否是同一个用户
+  const currentUserId = currentUserIdRef.value
+  if (currentUserId !== userInfo.id) {
+    // 用户切换，重置状态
+    currentUserIdRef.value = userInfo.id
+    resetWorkspaceState()
+  }
+}
+
+// 当前用户 ID（用于检测用户切换）
+const currentUserIdRef = ref<string | null>(null)
+
+// 重置工作区状态
+const resetWorkspaceState = () => {
+  // 重置输入和结果
+  prompt.value = ''
+  editableResult.value = ''
+  setRawPromptResult('')  // 通过 setRawPromptResult 来重置 finalRawPrompt，从而清空 result
+  
+  // 重置会话 ID 和历史记录 ID
+  currentSessionId.value = generateSessionId()
+  currentHistoryId.value = null
+  selectedHistoryId.value = null
+  
+  // 重置追问历史
+  followupHistory.value = []
+  showClarification.value = false
+  clarificationQuestion.value = ''
+  followupAnswer.value = ''
+  
+  // 重置指标配置（使用 useReportDatabase 内部的方法）
+  // 注意：indicators 是模块级单例，不能直接重置，需要通过 setIndicatorsFromMetricsConfig([]) 清空
+  setIndicatorsFromMetricsConfig([])
+  
+  // 清空历史记录列表
+  chatHistoryList.value = []
+  
+  console.log('[ReportWorkspace] 工作区状态已重置')
+}
 
 // ========================
 // 分割线拖拽
@@ -679,6 +776,10 @@ const handleOptimize = async () => {
     // 生成新的会话ID
     currentSessionId.value = generateSessionId()
 
+    // 获取用户信息
+    const storedUser = localStorage.getItem('user')
+    const userInfo = storedUser ? JSON.parse(storedUser) : null
+
     try {
         const res = await fetch(BANK_REPORT_AGENT_URL, {
             method: 'POST',
@@ -706,6 +807,7 @@ const handleOptimize = async () => {
             await saveChatHistory({
                 userInput: prompt.value,
                 sessionId: currentSessionId.value,
+                username: userInfo?.username || '',
                 optimizedPrompt: data.optimized_prompt || ''
             })
             // 刷新历史列表
@@ -726,6 +828,10 @@ const handleFollowup = async () => {
     // 本轮回复先合成到"候选历史"，发给后端；后端认可（无论又追问还是出结果）后再落盘
     const nextAnswers = [...followupHistory.value, answer]
     showClarification.value = false
+
+    // 获取用户信息
+    const storedUser = localStorage.getItem('user')
+    const userInfo = storedUser ? JSON.parse(storedUser) : null
 
     try {
         const res = await fetch(BANK_REPORT_AGENT_URL, {
@@ -761,6 +867,7 @@ const handleFollowup = async () => {
             await saveChatHistory({
                 userInput: prompt.value,
                 sessionId: currentSessionId.value,
+                username: userInfo?.username || '',
                 optimizedPrompt: data.optimized_prompt || ''
             })
             // 刷新历史列表
@@ -953,26 +1060,25 @@ const cancelClarification = () => {
 .sidebar-toggle-btn {
     position: fixed;
     left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 88px;
     z-index: 100;
-    width: 36px;
-    height: 64px;
+    width: 28px;
+    height: 48px;
     background: rgba(111, 50, 155, 0.9);
     color: #fff;
     border: none;
-    border-radius: 0 8px 8px 0;
+    border-radius: 0 6px 6px 0;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.15);
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .sidebar-toggle-btn:hover {
     background: rgba(111, 50, 155, 1);
-    width: 40px;
+    width: 32px;
 }
 
 .sidebar-toggle-btn.open {
@@ -989,7 +1095,7 @@ const cancelClarification = () => {
 .sidebar-panel {
     position: fixed;
     left: 0;
-    top: 0;
+    top: 88px;
     bottom: 0;
     width: 280px;
     background: #fff;
@@ -1120,3 +1226,4 @@ const cancelClarification = () => {
     margin-left: 6px;
 }
 </style>
+

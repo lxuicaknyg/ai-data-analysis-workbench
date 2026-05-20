@@ -1,6 +1,7 @@
 export interface ChatHistory {
   id: number;
   user_id: string;
+  username: string;
   session_id: string;
   user_input: string;
   optimized_prompt?: string;
@@ -14,6 +15,7 @@ export interface ChatHistory {
 
 export interface CreateChatHistoryRequest {
   user_id: string;
+  username: string;
   session_id: string;
   user_input: string;
   optimized_prompt?: string;

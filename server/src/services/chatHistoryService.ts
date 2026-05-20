@@ -3,12 +3,12 @@ import { ChatHistory, CreateChatHistoryRequest, UpdateChatHistoryRequest } from 
 
 export class ChatHistoryService {
   async create(chatHistory: CreateChatHistoryRequest): Promise<ChatHistory> {
-    const { user_id, session_id, user_input, optimized_prompt, execution_prompt, generated_report, status, error_message } = chatHistory;
+    const { user_id, username, session_id, user_input, optimized_prompt, execution_prompt, generated_report, status, error_message } = chatHistory;
     
     const [result] = await pool.execute(
-      `INSERT INTO chat_history (user_id, session_id, user_input, optimized_prompt, execution_prompt, generated_report, status, error_message)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [user_id, session_id, user_input, optimized_prompt || null, execution_prompt || null, generated_report || null, status || 'pending', error_message || null]
+      `INSERT INTO chat_history (user_id, username, session_id, user_input, optimized_prompt, execution_prompt, generated_report, status, error_message)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [user_id, username || null, session_id, user_input, optimized_prompt || null, execution_prompt || null, generated_report || null, status || 'pending', error_message || null]
     );
     
     const insertResult = result as { insertId: number };
