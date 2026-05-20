@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { clearReportState } from '../../components/report-mode/useReportDatabase'
 
 export interface UserInfo {
   id: number
@@ -28,6 +29,8 @@ export const useAuthStore = defineStore('auth', () => {
   const logout = () => {
     user.value = null
     localStorage.removeItem('user')
+    // 清除报告相关状态，避免用户切换时残留上一个用户的内容
+    clearReportState()
   }
 
   // 从本地存储恢复登录状态

@@ -220,6 +220,25 @@ function removeVariableLine(text: string, variable: string): string {
     .trim()
 }
 
+// ─── 清除报告状态（用于登出时重置）─────────────
+
+/**
+ * 清除所有报告相关状态（用户登出时调用）
+ * - 清空指标列表、自定义指标、原始prompt
+ * - 清空对应的 localStorage 存储
+ */
+export function clearReportState() {
+  indicators.value = []
+  rawPromptResult.value = ''
+  customIndicators.value = []
+  
+  saveToStorage(STORAGE_KEY_INDICATORS, [])
+  saveToStorage(STORAGE_KEY_RAW_PROMPT, '')
+  saveToStorage(STORAGE_KEY_CUSTOM_INDICATORS, [])
+  
+  console.log('[useReportDatabase] 报告状态已清空')
+}
+
 // ─── Composable ───────────────────────────────
 
 export function useReportDatabase() {
