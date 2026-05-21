@@ -631,6 +631,7 @@ onMounted(() => {
   // 当前标签页主动轮询检测用户变化（每 500ms 检查一次）
   checkUserChangeInterval = setInterval(checkUserChange, 500)
 })
+
 // 组件卸载时清理监听器
 onUnmounted(() => {
   window.removeEventListener('storage', handleUserChange)
@@ -1226,4 +1227,3 @@ const cancelClarification = () => {
     margin-left: 6px;
 }
 </style>
-
