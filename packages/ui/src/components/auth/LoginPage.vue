@@ -84,8 +84,8 @@ const handleLogin = async () => {
         role: result.user.role,
         token: result.token
       })
-      // 登录成功后跳转到主页
-      router.push('/')
+      // 登录成功后直接跳转到智能报告模式
+      router.push('/report/analyze')
     } else {
       errorMessage.value = result.message || '账号或密码错误'
     }

@@ -36,8 +36,12 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const newUser = await createUser({ username, password, role });
     res.status(201).json({ success: true, message: '用户创建成功', data: newUser });
-  } catch (error) {
+  } catch (error: any) {
     console.error('创建用户失败:', error);
+    // 如果是用户名重复错误，返回409状态码
+    if (error.message && error.message.includes('已存在')) {
+      return res.status(409).json({ success: false, message: error.message });
+    }
     res.status(500).json({ success: false, message: '创建用户失败' });
   }
 });

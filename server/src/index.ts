@@ -1,10 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 import { testConnection } from './config/database';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import chatHistoryRoutes from './routes/chatHistory';
+import { docxExporter } from './utils/docx-export';
 
 dotenv.config();
 
@@ -24,6 +27,55 @@ app.use('/api/chat-history', chatHistoryRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ success: true, message: 'Server is running', timestamp: new Date().toISOString() });
+});
+
+app.post('/api/export-docx', async (req, res) => {
+  try {
+    const { content } = req.body;
+    
+    if (!content) {
+      return res.status(400).json({ success: false, message: '内容不能为空' });
+    }
+
+    const filename = `report_${Date.now()}`;
+    const outputPath = await docxExporter.exportToDocx(content, filename);
+    
+    res.json({ success: true, filename: path.basename(outputPath), path: outputPath });
+  } catch (error) {
+    console.error('导出失败:', error);
+    res.status(500).json({ success: false, message: '导出失败: ' + (error instanceof Error ? error.message : '未知错误') });
+  }
+});
+
+app.get('/api/download', (req, res) => {
+  const filePath = req.query.path as string;
+  
+  if (!filePath) {
+    return res.status(400).json({ success: false, message: '文件路径不能为空' });
+  }
+
+  try {
+    const resolvedPath = path.resolve(filePath);
+    const outputDir = path.join(__dirname, '../../output');
+    
+    if (!resolvedPath.startsWith(outputDir)) {
+      return res.status(403).json({ success: false, message: '访问被拒绝' });
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      return res.status(404).json({ success: false, message: '文件不存在' });
+    }
+
+    const filename = path.basename(resolvedPath);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    const fileStream = fs.createReadStream(resolvedPath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('文件下载失败:', error);
+    res.status(500).json({ success: false, message: '文件下载失败' });
+  }
 });
 
 app.use((req, res) => {

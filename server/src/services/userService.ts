@@ -26,6 +26,12 @@ export async function getAllUsers(): Promise<UserResponse[]> {
 }
 
 export async function createUser(data: CreateUserRequest): Promise<UserResponse> {
+  // 先检查用户名是否已存在
+  const existingUser = await getUserByUsername(data.username);
+  if (existingUser) {
+    throw new Error(`用户名 '${data.username}' 已存在`);
+  }
+  
   const hashedPassword = await bcrypt.hash(data.password, 10);
   const role = data.role || 'user';
   

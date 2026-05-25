@@ -22,8 +22,14 @@ export default defineConfig(({ mode }) => {
       },
       hmr: true,
       watch: {
-        // 确保监视monorepo中其他包的变化
+        // 确保监视 monorepo 中其他包的变化
         ignored: ['!**/node_modules/@prompt-optimizer/**']
+      },
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3001',
+          changeOrigin: true
+        }
       }
     },
     build: {
@@ -50,7 +56,7 @@ export default defineConfig(({ mode }) => {
         ...Object.keys(env).reduce((acc, key) => {
           acc[key] = env[key];
           return acc;
-        }, {})
+        }, {} as Record<string, string>)
       }
     }
   }

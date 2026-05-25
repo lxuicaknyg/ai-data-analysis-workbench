@@ -18,6 +18,27 @@
       <NTooltip trigger="hover">
         <template #trigger>
           <NButton
+            size="small"
+            circle
+            class="export-button"
+            :loading="isExporting"
+            :disabled="!canExport"
+            @click="handleExport"
+          >
+            <template #icon>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </template>
+          </NButton>
+        </template>
+        导出为 DOCX
+      </NTooltip>
+      <NTooltip trigger="hover">
+        <template #trigger>
+          <NButton
             type="primary"
             size="small"
             circle
@@ -115,6 +136,7 @@ const selectedModelKey = ref(loadSavedModelKey())
 const modelOptions = ref<ModelSelectOption[]>([])
 const result = ref(props.result || '')
 const isRunning = ref(false)
+const isExporting = ref(false)
 const error = ref('')
 
 // 监听props.result变化，同步更新报告内容
@@ -126,6 +148,10 @@ watch(() => props.result, (newResult) => {
 
 const canExecute = computed(() =>
   !!props.prompt.trim() && !!selectedModelKey.value && !isRunning.value
+)
+
+const canExport = computed(() =>
+  !!result.value && !isRunning.value
 )
 
 onMounted(async () => {
@@ -238,6 +264,41 @@ async function handleExecute() {
     isRunning.value = false
   }
 }
+
+async function handleExport() {
+  if (!result.value) return
+
+  isExporting.value = true
+
+  try {
+    const response = await fetch('/api/export-docx', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ content: result.value })
+    })
+
+    const data = await response.json()
+    
+    if (data.success) {
+      const link = document.createElement('a')
+      const url = `/api/download?path=${encodeURIComponent(data.path)}`
+      link.href = url
+      link.download = data.filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      console.log('报告导出成功:', data.filename)
+    } else {
+      console.error('导出失败:', data.message)
+    }
+  } catch (error) {
+    console.error('导出失败:', error)
+  } finally {
+    isExporting.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -260,6 +321,12 @@ async function handleExecute() {
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.export-button {
+  background: linear-gradient(135deg, #18a058, #10b981) !important;
+  border-color: #18a058 !important;
+  color: white !important;
 }
 
 .run-button {

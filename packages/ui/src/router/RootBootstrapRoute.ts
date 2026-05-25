@@ -10,10 +10,12 @@ export const getInitialRouteFromGlobalSettings = (globalSettings: GlobalSettings
       return `/basic/${basicSubMode}`
     case 'pro':
       return `/pro/${proSubMode}`
+    case 'report':
+      return '/report/analyze'
     case 'image':
       return `/image/${imageSubMode}`
     default:
-      return '/basic/system'
+      return '/report/analyze'
   }
 }
 

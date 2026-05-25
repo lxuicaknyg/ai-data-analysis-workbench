@@ -641,7 +641,7 @@ onUnmounted(() => {
 })
 
 // 轮询检测用户变化
-let checkUserChangeInterval: number | null = null
+let checkUserChangeInterval: ReturnType<typeof setInterval> | null = null
 let lastUserId: string | null = null
 
 // 检查用户变化

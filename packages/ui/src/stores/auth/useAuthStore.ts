@@ -23,12 +23,17 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = userInfo
     // 保存到本地存储
     localStorage.setItem('user', JSON.stringify(userInfo))
+    // 单独保存 token，供 API 请求使用
+    if (userInfo.token) {
+      localStorage.setItem('token', userInfo.token)
+    }
   }
 
   // 登出
   const logout = () => {
     user.value = null
     localStorage.removeItem('user')
+    localStorage.removeItem('token')
     // 清除报告相关状态，避免用户切换时残留上一个用户的内容
     clearReportState()
   }
@@ -39,6 +44,11 @@ export const useAuthStore = defineStore('auth', () => {
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
         user.value = JSON.parse(storedUser)
+        // 恢复 token
+        const storedToken = localStorage.getItem('token')
+        if (storedToken && user.value) {
+          user.value.token = storedToken
+        }
       }
     } catch (error) {
       console.error('Failed to restore session:', error)
