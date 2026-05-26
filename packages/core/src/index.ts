@@ -106,6 +106,7 @@ export { DexieStorageProvider } from './services/storage/dexieStorageProvider'
 export { LocalStorageProvider } from './services/storage/localStorageProvider'
 export { MemoryStorageProvider } from './services/storage/memoryStorageProvider'
 export { FileStorageProvider } from './services/storage/fileStorageProvider'
+export { ApiStorageProvider } from './services/storage/apiStorageProvider'
 export {
   runStorageStartupSafetyCheck,
   writeStartupRepairReport,
@@ -216,6 +217,7 @@ export * from './services/context/constants'
 
 // 导出收藏管理相关
 export { FavoriteManager } from './services/favorite/manager'
+export { ApiFavoriteManager } from './services/favorite/api-manager'
 export { FavoriteManagerElectronProxy } from './services/favorite/electron-proxy'
 export { TagTypeConverter } from './services/favorite/type-converter'
 export {

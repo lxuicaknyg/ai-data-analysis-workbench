@@ -237,6 +237,8 @@
                             :show-preview="false"
                             :show-render-tab="false"
                             :show-iterate-button="false"
+                            :enable-favorite="true"
+                            @save-favorite="handleSaveFavorite"
                         />
                     </NCard>
                 </NFlex>
@@ -277,7 +279,7 @@
  * 注意：所有状态（包括 showClarificationModal）使用组件本地 ref，
  * 确保 NModal 的 v-model 绑定到本地 ref，避免响应式失效问题。
  */
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NCard, NFlex, NText, NButton, NIcon, NInput, NSelect, NScrollbar, NSpin } from 'naive-ui'
 import { useToast } from '../../composables/ui/useToast'
@@ -319,6 +321,27 @@ const BANK_AGENT_BASE = getBankAgentBaseUrl()
 const BANK_REPORT_AGENT_URL = `${BANK_AGENT_BASE}/api/optimize`
 
 const toast = useToast()
+
+// 注入全局收藏处理函数
+const globalHandleSaveFavorite = inject<((data: { content: string; originalContent?: string }) => void) | null>(
+  'handleSaveFavorite',
+  null
+)
+
+// 处理收藏保存
+const handleSaveFavorite = (data: { content: string; originalContent?: string }) => {
+  if (!globalHandleSaveFavorite) {
+    console.warn('[ReportWorkspace] handleSaveFavorite not available from App.vue')
+    return
+  }
+
+  if (!data.content) {
+    console.warn('[ReportWorkspace] No content to save')
+    return
+  }
+
+  globalHandleSaveFavorite(data)
+}
 
 // 固定的 Agent 选项
 const agentOptions = [{ label: '数据分析报告Agent', value: 'bank-report-agent' }]
@@ -519,6 +542,8 @@ const selectedReportResult = ref('')
 
 const selectHistory = (item: ChatHistoryItem) => {
   selectedHistoryId.value = item.id
+  // 设置当前历史记录ID，以便后续更新报告内容
+  currentHistoryId.value = item.id
   // 填充到输入框和结果区域
   prompt.value = item.user_input || ''
   editableResult.value = item.optimized_prompt || ''
@@ -582,6 +607,8 @@ const handleReportGenerated = async (reportContent: string) => {
       executionPrompt: editableResult.value,
       generatedReport: reportContent
     })
+    // 更新完成后刷新侧边栏列表，确保"已生成报告"标签正确显示
+    refreshHistoryList()
   }
 }
 

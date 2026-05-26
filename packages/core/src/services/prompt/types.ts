@@ -62,9 +62,9 @@ export interface ConversationMessage {
 export type OptimizationMode = "system" | "user";
 
 /**
- * 功能模式枚举（Basic / Pro / Image）
+ * 功能模式枚举（Basic / Pro / Image / Report）
  */
-export type FunctionMode = "basic" | "pro" | "image";
+export type FunctionMode = "basic" | "pro" | "image" | "report";
 
 /**
  * 子模式类型定义（三种功能模式独立）

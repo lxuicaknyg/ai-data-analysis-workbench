@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import { IStorageProvider } from './types';
 import { StorageError } from './errors';
+import { LocalStorageProvider } from './localStorageProvider';
 
 /**
  * 数据表接口定义
@@ -55,6 +56,8 @@ class PromptOptimizerDB extends Dexie {
  * - 原生事务支持，更好的并发安全
  * - 异步操作，不阻塞UI
  * - 更好的查询性能
+ * 
+ * 当 Dexie/IndexedDB 不可用时，自动降级到 LocalStorageProvider
  */
 export class DexieStorageProvider implements IStorageProvider {
   private db: PromptOptimizerDB;
@@ -62,20 +65,50 @@ export class DexieStorageProvider implements IStorageProvider {
   
   // 用于原子操作的锁机制
   private keyLocks = new Map<string, Promise<void>>();
+  
+  // Fallback 存储提供者（当 Dexie 不可用时使用）
+  private fallbackProvider: LocalStorageProvider | null = null;
+  
+  // 标记是否已降级到 fallback
+  private isFallback = false;
 
   constructor() {
     this.db = new PromptOptimizerDB();
-    this.dbOpened = this.db.open().then(() => undefined).catch((error) => {
-      console.error('Failed to open Dexie database:', error);
-      // 抛出错误以使所有后续操作失败
-      throw error;
-    });
+    // 检测浏览器是否支持 IndexedDB
+    const indexedDbSupported = typeof window !== 'undefined' && 
+      ('indexedDB' in window || 
+       (window as any).mozIndexedDB || 
+       (window as any).webkitIndexedDB || 
+       (window as any).msIndexedDB);
+    
+    if (!indexedDbSupported) {
+      // 浏览器不支持 IndexedDB，直接使用 localStorage
+      console.warn('IndexedDB not supported, using localStorage fallback');
+      this.fallbackProvider = new LocalStorageProvider();
+      this.isFallback = true;
+      this.dbOpened = Promise.resolve();
+    } else {
+      this.dbOpened = this.db.open().then(() => {
+        console.log('Dexie database opened successfully');
+      }).catch((error) => {
+        console.error('Failed to open Dexie database, falling back to localStorage:', error);
+        // 初始化 fallback 提供者
+        this.fallbackProvider = new LocalStorageProvider();
+        this.isFallback = true;
+        // 不抛出错误，允许使用 fallback
+      });
+    }
   }
 
   /**
    * 确保数据库已打开
+   * 在 fallback 模式下直接返回
    */
   private async initialize(): Promise<void> {
+    // 如果已降级到 fallback，直接返回
+    if (this.isFallback) {
+      return;
+    }
     await this.dbOpened;
   }
 
@@ -91,6 +124,11 @@ export class DexieStorageProvider implements IStorageProvider {
    * 获取存储项
    */
   async getItem(key: string): Promise<string | null> {
+    // 如果已降级到 fallback，使用 LocalStorageProvider
+    if (this.isFallback && this.fallbackProvider) {
+      return this.fallbackProvider.getItem(key);
+    }
+    
     await this.initialize();
     
     try {
@@ -106,6 +144,11 @@ export class DexieStorageProvider implements IStorageProvider {
    * 设置存储项
    */
   async setItem(key: string, value: string): Promise<void> {
+    // 如果已降级到 fallback，使用 LocalStorageProvider
+    if (this.isFallback && this.fallbackProvider) {
+      return this.fallbackProvider.setItem(key, value);
+    }
+    
     await this.initialize();
     
     try {
@@ -124,6 +167,11 @@ export class DexieStorageProvider implements IStorageProvider {
    * 删除存储项
    */
   async removeItem(key: string): Promise<void> {
+    // 如果已降级到 fallback，使用 LocalStorageProvider
+    if (this.isFallback && this.fallbackProvider) {
+      return this.fallbackProvider.removeItem(key);
+    }
+    
     await this.initialize();
     
     try {
@@ -138,6 +186,11 @@ export class DexieStorageProvider implements IStorageProvider {
    * 清空所有存储
    */
   async clearAll(): Promise<void> {
+    // 如果已降级到 fallback，使用 LocalStorageProvider
+    if (this.isFallback && this.fallbackProvider) {
+      return this.fallbackProvider.clearAll();
+    }
+    
     await this.initialize();
     
     try {
@@ -156,6 +209,11 @@ export class DexieStorageProvider implements IStorageProvider {
     key: string,
     updateFn: (currentValue: T | null) => T
   ): Promise<void> {
+    // 如果已降级到 fallback，使用 LocalStorageProvider 的 updateData 方法
+    if (this.isFallback && this.fallbackProvider) {
+      return this.fallbackProvider.updateData(key, updateFn);
+    }
+    
     await this.initialize();
 
     // 获取键级别的锁

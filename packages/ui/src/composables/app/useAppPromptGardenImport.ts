@@ -1166,7 +1166,7 @@ type SaveFavoriteDialogPayload = {
     description?: string
     category?: string
     tags?: string[]
-    functionMode?: 'basic' | 'context' | 'image'
+    functionMode?: 'basic' | 'context' | 'image' | 'report'
     optimizationMode?: 'system' | 'user'
     imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
     metadata?: Record<string, unknown>

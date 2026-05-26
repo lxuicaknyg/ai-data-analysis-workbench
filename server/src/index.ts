@@ -4,9 +4,11 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { testConnection } from './config/database';
+import { initDatabase } from './config/initDatabase';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import chatHistoryRoutes from './routes/chatHistory';
+import favoriteRoutes from './routes/favorites';
 import { docxExporter } from './utils/docx-export';
 
 dotenv.config();
@@ -24,6 +26,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chat-history', chatHistoryRoutes);
+app.use('/api/favorites', favoriteRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ success: true, message: 'Server is running', timestamp: new Date().toISOString() });
@@ -89,6 +92,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 async function startServer() {
   await testConnection();
+  await initDatabase();
   
   app.listen(PORT, () => {
     console.log(`🚀 服务器运行在 http://localhost:${PORT}`);

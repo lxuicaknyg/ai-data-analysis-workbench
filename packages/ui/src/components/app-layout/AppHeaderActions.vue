@@ -1,5 +1,7 @@
 <template>
+    <!-- 功能提示词（智能报告模式隐藏） -->
     <ActionButtonUI
+        v-if="!isReportMode"
         :text="$t('nav.templates')"
         @click="emit('open-templates')"
         type="default"
@@ -12,7 +14,9 @@
         </template>
     </ActionButtonUI>
 
+    <!-- 历史记录（智能报告模式隐藏） -->
     <ActionButtonUI
+        v-if="!isReportMode"
         :text="$t('nav.history')"
         @click="emit('open-history')"
         type="default"

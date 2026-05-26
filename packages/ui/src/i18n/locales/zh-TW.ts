@@ -400,6 +400,7 @@ export default {
         basic: "基礎",
         context: "情境",
         image: "圖像",
+        report: "智能報告",
       },
       optimizationModes: {
         system: "系統提示詞",

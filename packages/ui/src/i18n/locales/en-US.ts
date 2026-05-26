@@ -434,6 +434,7 @@ export default {
         basic: "Basic",
         context: "Context",
         image: "Image",
+        report: "Smart Report",
       },
       optimizationModes: {
         system: "System Prompt",

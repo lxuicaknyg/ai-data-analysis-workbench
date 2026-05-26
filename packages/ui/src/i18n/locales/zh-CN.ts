@@ -424,6 +424,7 @@ export default {
         basic: "基础",
         context: "上下文",
         image: "图像",
+        report: "智能报告",
       },
       optimizationModes: {
         system: "系统提示词",

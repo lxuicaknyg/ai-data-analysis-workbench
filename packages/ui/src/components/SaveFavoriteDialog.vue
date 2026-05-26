@@ -271,7 +271,7 @@ interface Props {
   /** 原始内容(用于从优化器保存时) */
   originalContent?: string
   /** 当前功能模式(用于从优化器保存时预填充) */
-  currentFunctionMode?: 'basic' | 'context' | 'pro' | 'image'
+  currentFunctionMode?: 'basic' | 'context' | 'pro' | 'image' | 'report'
   /** 当前优化模式(用于从优化器保存时预填充) */
   currentOptimizationMode?: 'system' | 'user'
   /** 可选的预填充数据（外部导入收藏确认场景） */
@@ -280,7 +280,7 @@ interface Props {
     description?: string
     category?: string
     tags?: string[]
-    functionMode?: 'basic' | 'context' | 'image'
+    functionMode?: 'basic' | 'context' | 'image' | 'report'
     optimizationMode?: 'system' | 'user'
     imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
     metadata?: Record<string, unknown>
@@ -334,7 +334,7 @@ const formData = reactive({
   content: '',
   category: '',
   tags: [] as string[],
-  functionMode: 'basic' as 'basic' | 'context' | 'image',
+  functionMode: 'basic' as 'basic' | 'context' | 'image' | 'report',
   optimizationMode: 'system' as 'system' | 'user' | undefined,
   imageSubMode: undefined as 'text2image' | 'image2image' | 'multiimage' | undefined
 });
@@ -583,12 +583,19 @@ const handleClearImages = () => {
 const functionModeOptions = computed(() => [
   { label: t('favorites.dialog.functionModes.basic'), value: 'basic' },
   { label: t('favorites.dialog.functionModes.context'), value: 'context' },
-  { label: t('favorites.dialog.functionModes.image'), value: 'image' }
+  { label: t('favorites.dialog.functionModes.image'), value: 'image' },
+  { label: t('favorites.dialog.functionModes.report'), value: 'report' }
 ]);
 
 const optimizationModeOptions = computed(() => {
   // 根据功能模式动态生成选项
   const isContextMode = formData.functionMode === 'context';
+  const isReportMode = formData.functionMode === 'report';
+
+  // 智能报告模式没有子模式，返回空数组
+  if (isReportMode) {
+    return [];
+  }
 
   return [
     {
@@ -613,7 +620,7 @@ const imageSubModeOptions = computed(() => [
 ]);
 
 // 功能模式切换处理
-const handleFunctionModeChange = (mode: 'basic' | 'context' | 'image') => {
+const handleFunctionModeChange = (mode: 'basic' | 'context' | 'image' | 'report') => {
   formData.functionMode = mode;
 
   if (mode === 'basic' || mode === 'context') {
@@ -624,6 +631,10 @@ const handleFunctionModeChange = (mode: 'basic' | 'context' | 'image') => {
     // 切换到 image,设置默认图像子模式,清空优化模式
     formData.imageSubMode = formData.imageSubMode || 'text2image';
     formData.optimizationMode = undefined;
+  } else if (mode === 'report') {
+    // 切换到 report,清空优化模式和图像子模式
+    formData.optimizationMode = undefined;
+    formData.imageSubMode = undefined;
   }
 };
 
@@ -699,16 +710,22 @@ const handleSave = async () => {
 
     const sanitizedTags = Array.from(toRaw(formData.tags || [])).map(tag => String(tag));
 
+    const functionModeValue = formData.functionMode as 'basic' | 'context' | 'image' | 'report';
+    
+    // 根据功能模式设置正确的二级模式
+    const finalOptimizationMode = functionModeValue === 'report' ? undefined : formData.optimizationMode;
+    const finalImageSubMode = functionModeValue === 'report' ? undefined : formData.imageSubMode;
+    
     const basePayload = {
       title: formData.title.trim(),
       description: formData.description.trim(),
       content: formData.content.trim(),
       category: formData.category,
       tags: sanitizedTags,
-      functionMode: formData.functionMode,
-      optimizationMode: formData.optimizationMode,
-      imageSubMode: formData.imageSubMode
-    };
+      functionMode: functionModeValue,
+      optimizationMode: finalOptimizationMode,
+      imageSubMode: finalImageSubMode
+    } as Partial<FavoritePrompt>;
 
     const existingMetadata =
       props.mode === 'edit' && props.favorite?.metadata && typeof props.favorite.metadata === 'object'
@@ -751,21 +768,17 @@ const handleSave = async () => {
       message.success(t('favorites.dialog.messages.editSuccess'));
     } else {
       // 创建模式或保存模式：添加新收藏
-      const favoriteData: {
-        title: string;
-        description: string;
-        content: string;
-        category: string;
-        tags: string[];
-        functionMode: 'basic' | 'context' | 'image';
-        optimizationMode?: 'system' | 'user';
-        imageSubMode?: 'text2image' | 'image2image' | 'multiimage';
-        metadata?: Record<string, unknown>;
-      } = {
-        ...basePayload
-      };
-
-      favoriteData.metadata = metadata;
+      const favoriteData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        content: formData.content.trim(),
+        category: formData.category,
+        tags: sanitizedTags,
+        functionMode: functionModeValue as 'basic' | 'context' | 'image' | 'report',
+        optimizationMode: finalOptimizationMode,
+        imageSubMode: finalImageSubMode,
+        metadata
+      } as Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>;
 
       await servicesValue.favoriteManager.addFavorite(favoriteData);
       message.success(t('favorites.dialog.messages.saveSuccess'));
@@ -838,31 +851,44 @@ watch(() => props.show, async (newShow) => {
         : [];
 
       // 4. 根据预填充模式（优先）或当前模式自动设置
-      if (prefill?.functionMode === 'image') {
-        formData.functionMode = 'image';
-        formData.imageSubMode =
-          prefill.imageSubMode === 'image2image'
-            ? 'image2image'
-            : prefill.imageSubMode === 'multiimage'
-              ? 'multiimage'
-              : 'text2image';
-        formData.optimizationMode = undefined;
-      } else if (prefill?.functionMode === 'context' || prefill?.functionMode === 'basic') {
-        formData.functionMode = prefill.functionMode;
-        formData.optimizationMode = prefill.optimizationMode === 'user' ? 'user' : 'system';
-        formData.imageSubMode = undefined;
-      } else if (props.currentFunctionMode === 'image') {
-        formData.functionMode = 'image';
-        formData.imageSubMode = 'text2image';
-        formData.optimizationMode = undefined;
-      } else if (props.currentFunctionMode === 'context' || props.currentFunctionMode === 'pro') {
-        formData.functionMode = 'context';
-        formData.optimizationMode = props.currentOptimizationMode;
-        formData.imageSubMode = undefined;
-      } else {
-        formData.functionMode = 'basic';
-        formData.optimizationMode = props.currentOptimizationMode;
-        formData.imageSubMode = undefined;
+      const targetFunctionMode = prefill?.functionMode || props.currentFunctionMode;
+      
+      switch (targetFunctionMode) {
+        case 'image':
+          formData.functionMode = 'image';
+          formData.imageSubMode =
+            prefill?.imageSubMode === 'image2image'
+              ? 'image2image'
+              : prefill?.imageSubMode === 'multiimage'
+                ? 'multiimage'
+                : 'text2image';
+          formData.optimizationMode = undefined;
+          break;
+        case 'context':
+          formData.functionMode = 'context';
+          formData.optimizationMode = prefill?.optimizationMode === 'user' ? 'user' : (props.currentOptimizationMode || 'system');
+          formData.imageSubMode = undefined;
+          break;
+        case 'basic':
+          formData.functionMode = 'basic';
+          formData.optimizationMode = prefill?.optimizationMode === 'user' ? 'user' : (props.currentOptimizationMode || 'system');
+          formData.imageSubMode = undefined;
+          break;
+        case 'report':
+          formData.functionMode = 'report';
+          formData.optimizationMode = undefined;
+          formData.imageSubMode = undefined;
+          break;
+        case 'pro':
+          // pro 模式视为 context 模式处理
+          formData.functionMode = 'context';
+          formData.optimizationMode = props.currentOptimizationMode || 'system';
+          formData.imageSubMode = undefined;
+          break;
+        default:
+          formData.functionMode = 'basic';
+          formData.optimizationMode = props.currentOptimizationMode || 'system';
+          formData.imageSubMode = undefined;
       }
 
       const prefillMetadata =

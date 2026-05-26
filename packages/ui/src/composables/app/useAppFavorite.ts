@@ -22,7 +22,7 @@ export interface SaveFavoriteData {
         description?: string
         category?: string
         tags?: string[]
-        functionMode?: 'basic' | 'context' | 'image'
+        functionMode?: 'basic' | 'context' | 'image' | 'report'
         optimizationMode?: OptimizationMode
         imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
         metadata?: Record<string, unknown>
@@ -34,7 +34,7 @@ export interface SaveFavoriteData {
  */
 export interface FavoriteItem {
     content: string
-    functionMode?: 'basic' | 'pro' | 'image' | 'context'
+    functionMode?: 'basic' | 'pro' | 'image' | 'context' | 'report'
     optimizationMode?: OptimizationMode
     imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
     metadata?: Record<string, unknown>

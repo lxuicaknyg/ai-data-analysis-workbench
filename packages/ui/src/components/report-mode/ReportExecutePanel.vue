@@ -104,9 +104,10 @@
       :enable-fullscreen="true"
       :enable-diff="false"
       :enable-edit="false"
-      :enable-favorite="false"
+      :enable-favorite="true"
       :enable-render="true"
       :style="{ height: '100%', minHeight: '0', flex: 1 }"
+      @save-favorite="handleSaveFavorite"
     />
   </NCard>
 </template>
@@ -131,6 +132,12 @@ const emit = defineEmits<{
 const STORAGE_KEY_REPORT_MODEL = 'report/v1/execute_model'
 
 const services = inject<Ref<AppServices | null>>('services')
+
+// 注入全局收藏处理函数
+const globalHandleSaveFavorite = inject<((data: { content: string; originalContent?: string }) => void) | null>(
+  'handleSaveFavorite',
+  null
+)
 
 const selectedModelKey = ref(loadSavedModelKey())
 const modelOptions = ref<ModelSelectOption[]>([])
@@ -298,6 +305,21 @@ async function handleExport() {
   } finally {
     isExporting.value = false
   }
+}
+
+// 收藏功能处理
+const handleSaveFavorite = (data: { content: string; originalContent?: string }) => {
+  if (!globalHandleSaveFavorite) {
+    console.warn('[ReportExecutePanel] handleSaveFavorite not available from App.vue')
+    return
+  }
+
+  if (!data.content) {
+    console.warn('[ReportExecutePanel] No content to save')
+    return
+  }
+
+  globalHandleSaveFavorite(data)
 }
 </script>
 

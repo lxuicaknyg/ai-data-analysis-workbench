@@ -42,6 +42,7 @@
 import { ref } from 'vue'
 import { useAuthStore } from '../../stores/auth/useAuthStore'
 import { router } from '../../router'
+import { StorageFactory } from '@prompt-optimizer/core'
 
 // 账号密码绑定
 const username = ref('')
@@ -50,6 +51,87 @@ const isLoading = ref(false)
 const errorMessage = ref('')
 
 const authStore = useAuthStore()
+
+/**
+ * 迁移本地收藏数据到后端服务器
+ */
+async function migrateLocalFavoritesToServer() {
+  try {
+    // 创建本地存储提供器
+    const storageProvider = StorageFactory.create('dexie')
+    
+    // 读取本地收藏数据
+    const favoritesData = await storageProvider.getItem('favorites')
+    if (!favoritesData) {
+      console.log('[Migration] 没有本地收藏数据需要迁移')
+      return
+    }
+    
+    const favorites = JSON.parse(favoritesData)
+    if (!Array.isArray(favorites) || favorites.length === 0) {
+      console.log('[Migration] 本地收藏数据为空')
+      return
+    }
+    
+    console.log(`[Migration] 开始迁移 ${favorites.length} 条本地收藏数据`)
+    
+    const token = localStorage.getItem('token')
+    if (!token) {
+      throw new Error('未找到认证令牌')
+    }
+    
+    const baseUrl = 'http://localhost:3001/api'
+    
+    // 逐条迁移收藏数据
+    let successCount = 0
+    let skipCount = 0
+    
+    for (const favorite of favorites) {
+      try {
+        const response = await fetch(`${baseUrl}/favorites`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: favorite.title,
+            content: favorite.content,
+            description: favorite.description,
+            category: favorite.category,
+            tags: favorite.tags || [],
+            functionMode: favorite.functionMode,
+            optimizationMode: favorite.optimizationMode,
+            imageSubMode: favorite.imageSubMode,
+            metadata: favorite.metadata
+          })
+        })
+        
+        if (response.ok) {
+          successCount++
+        } else {
+          const error = await response.json()
+          console.warn(`[Migration] 迁移收藏失败:`, error.message)
+          skipCount++
+        }
+      } catch (error) {
+        console.warn(`[Migration] 迁移收藏时出错:`, error)
+        skipCount++
+      }
+    }
+    
+    console.log(`[Migration] 迁移完成: 成功 ${successCount} 条，跳过 ${skipCount} 条`)
+    
+    // 可选：迁移成功后清除本地数据
+    if (successCount > 0 && skipCount === 0) {
+      console.log('[Migration] 所有数据迁移成功，清除本地数据')
+      await storageProvider.removeItem('favorites')
+    }
+  } catch (error) {
+    console.error('[Migration] 迁移过程中出错:', error)
+    throw error
+  }
+}
 
 // 登录点击事件
 const handleLogin = async () => {
@@ -84,6 +166,15 @@ const handleLogin = async () => {
         role: result.user.role,
         token: result.token
       })
+      
+      // 登录成功后，尝试迁移本地收藏数据到后端
+      try {
+        await migrateLocalFavoritesToServer()
+        console.log('[LoginPage] 本地收藏数据迁移完成')
+      } catch (error) {
+        console.warn('[LoginPage] 本地收藏数据迁移失败:', error)
+      }
+      
       // 登录成功后直接跳转到智能报告模式
       router.push('/report/analyze')
     } else {
