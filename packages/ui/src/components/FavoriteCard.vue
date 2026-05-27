@@ -220,7 +220,8 @@
             {{ t('favorites.manager.card.copyContent') }}
           </NTooltip>
 
-          <NTooltip
+          <!-- 隐藏"立即使用"按钮 - 2026-05-27 -->
+          <!-- <NTooltip
             trigger="hover"
             :overlay-style="tooltipOverlayStyle"
             :content-style="tooltipContentStyle"
@@ -235,9 +236,10 @@
               </NButton>
             </template>
             {{ t('favorites.manager.card.useNow') }}
-          </NTooltip>
+          </NTooltip> -->
 
-          <NTooltip
+          <!-- 隐藏"编辑"按钮 - 2026-05-27 -->
+          <!-- <NTooltip
             trigger="hover"
             :overlay-style="tooltipOverlayStyle"
             :content-style="tooltipContentStyle"
@@ -252,7 +254,7 @@
               </NButton>
             </template>
             {{ t('favorites.manager.card.edit') }}
-          </NTooltip>
+          </NTooltip> -->
 
           <NPopconfirm
             @positive-click="$emit('delete', favorite)"
