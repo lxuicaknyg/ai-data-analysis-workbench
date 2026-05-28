@@ -709,6 +709,9 @@ onMounted(() => {
     currentUserIdRef.value = userInfo.id
   }
   
+  // 重置工作区状态，确保每次进入都是干净的界面
+  resetWorkspaceState()
+  
   if (showSidebar.value) {
     loadChatHistory()
   }

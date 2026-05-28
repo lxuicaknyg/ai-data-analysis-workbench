@@ -147,6 +147,32 @@ const isRunning = ref(false)
 const isExporting = ref(false)
 const error = ref('')
 
+// 报告类型定义（从报告内容自动识别）
+const reportTypePatterns: { type: string; keywords: string[] }[] = [
+  { type: '代发业务经营报告', keywords: ['代发业务', '代发客户', '代发交易'] },
+  { type: '公司金融经营报告', keywords: ['对公业务', '公司金融', '实体经济'] },
+  { type: '分支机构经营分析', keywords: ['分行', '支行', '经营画像'] },
+  { type: '对公渠道业务月报', keywords: ['对公渠道', '企业网银', '银企通'] },
+  { type: '快捷支付运营报告', keywords: ['快捷支付', '支付运营', '绑卡'] },
+  { type: '零售晨夕会经营数据', keywords: ['晨夕会', '零售条线', 'AUM'] },
+  { type: '机构业务存贷日报', keywords: ['机构客户', '存贷日报', '大额资金'] },
+  { type: '科技金融客群报告', keywords: ['科技金融', '专精特新', '高新技术'] },
+  { type: '运营业务数据报告', keywords: ['运营管理', '支付系统', '网点效能'] },
+  { type: '金融市场久期简报', keywords: ['久期', '债券', '金融市场'] },
+  { type: '零售信贷经营月报', keywords: ['零售信贷', '贷款定价', '资产质量'] },
+  { type: '零售存款日报简报', keywords: ['零售存款', '存款日报', '产品销量'] },
+]
+
+// 根据报告内容自动识别报告类型
+function detectReportType(content: string): string {
+  for (const { type, keywords } of reportTypePatterns) {
+    if (keywords.some(keyword => content.includes(keyword))) {
+      return type
+    }
+  }
+  return '智能报告' // 默认类型
+}
+
 // 监听props.result变化，同步更新报告内容
 watch(() => props.result, (newResult) => {
   if (newResult !== undefined) {
@@ -284,7 +310,7 @@ async function handleExport() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ content: result.value })
+      body: JSON.stringify({ content: result.value, reportType: detectReportType(result.value) })
     })
 
     const data = await response.json()

@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { testConnection } from './config/database';
 import { initDatabase } from './config/initDatabase';
 import authRoutes from './routes/auth';
@@ -12,6 +13,9 @@ import favoriteRoutes from './routes/favorites';
 import { docxExporter } from './utils/docx-export';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -34,13 +38,15 @@ app.get('/api/health', (req, res) => {
 
 app.post('/api/export-docx', async (req, res) => {
   try {
-    const { content } = req.body;
+    const { content, reportType } = req.body;
     
     if (!content) {
       return res.status(400).json({ success: false, message: '内容不能为空' });
     }
 
-    const filename = `report_${Date.now()}`;
+    // 报告类型 + 时间戳 命名格式
+    const typePrefix = reportType || 'report';
+    const filename = `${typePrefix}_${Date.now()}`;
     const outputPath = await docxExporter.exportToDocx(content, filename);
     
     res.json({ success: true, filename: path.basename(outputPath), path: outputPath });
@@ -71,7 +77,9 @@ app.get('/api/download', (req, res) => {
 
     const filename = path.basename(resolvedPath);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    // 对中文文件名进行 URL 编码，支持浏览器正确处理中文文件名
+    const encodedFilename = encodeURIComponent(filename);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`);
     
     const fileStream = fs.createReadStream(resolvedPath);
     fileStream.pipe(res);
