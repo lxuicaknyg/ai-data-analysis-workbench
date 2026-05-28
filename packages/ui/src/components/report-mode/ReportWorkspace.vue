@@ -258,7 +258,13 @@
 
             <!-- 右侧：指标SQL配置 + 执行面板 -->
             <div class="split-pane right-pane">
-                <IndicatorSqlPanel :loading="isLoading" class="bank-panel" style="flex-shrink: 0;" />
+                <IndicatorSqlPanel 
+  :loading="isLoading" 
+  :indicators="restoredIndicators.length > 0 ? restoredIndicators : undefined"
+  :custom-indicators="restoredCustomIndicators.length > 0 ? restoredCustomIndicators : undefined"
+  class="bank-panel" 
+  style="flex-shrink: 0;" 
+/>
                 <ReportExecutePanel :prompt="editableResult" :result="selectedReportResult" style="flex: 1; min-height: 0; display: flex; flex-direction: column;" @report-generated="handleReportGenerated" />
             </div>
         </div>
@@ -288,7 +294,7 @@ import PromptPanelUI from '../PromptPanel.vue'
 import IndicatorSqlPanel from './IndicatorSqlPanel.vue'
 import ReportExecutePanel from './ReportExecutePanel.vue'
 import { useReportDatabase, renderPromptWithVariables } from './useReportDatabase'
-import type { MetricConfigFromApi } from './reportTypes'
+import type { MetricConfigFromApi, Indicator, CustomIndicator } from './reportTypes'
 
 const { t } = useI18n()
 function getRuntimeConfigValue(key: string): string {
@@ -360,6 +366,10 @@ const {
   variableValues,
   finalRawPrompt,
   setRawPromptResult,
+  indicators,
+  customIndicators,
+  setIndicatorsFromHistory,
+  setCustomIndicatorsFromHistory,
 } = useReportDatabase()
 
 /**
@@ -428,6 +438,10 @@ const saveChatHistory = async (data: {
       return null
     }
 
+    // 获取当前指标配置数据
+    const currentIndicators = indicators.value || []
+    const currentCustomIndicators = customIndicators.value || []
+
     const response = await fetch(`${AUTH_SERVER_BASE}/api/chat-history`, {
       method: 'POST',
       headers: {
@@ -442,7 +456,9 @@ const saveChatHistory = async (data: {
         optimized_prompt: data.optimizedPrompt,
         execution_prompt: data.executionPrompt || null,
         generated_report: data.generatedReport || null,
-        status: 'completed'
+        status: 'completed',
+        indicators: currentIndicators.length > 0 ? JSON.stringify(currentIndicators) : null,
+        custom_indicators: currentCustomIndicators.length > 0 ? JSON.stringify(currentCustomIndicators) : null
       })
     })
 
@@ -479,6 +495,8 @@ interface ChatHistoryItem {
   status: string
   created_at: string
   updated_at: string
+  indicators?: string
+  custom_indicators?: string
 }
 
 // 切换侧边栏
@@ -540,25 +558,65 @@ const loadChatHistory = async () => {
 // 当前选中的报告内容
 const selectedReportResult = ref('')
 
+// 历史记录恢复的指标数据（用于传递给 IndicatorSqlPanel）
+const restoredIndicators = ref<Indicator[]>([])
+const restoredCustomIndicators = ref<CustomIndicator[]>([])
+
 const selectHistory = (item: ChatHistoryItem) => {
   selectedHistoryId.value = item.id
   // 设置当前历史记录ID，以便后续更新报告内容
   currentHistoryId.value = item.id
   // 填充到输入框和结果区域
   prompt.value = item.user_input || ''
-  editableResult.value = item.optimized_prompt || ''
-  // 如果有执行prompt，也显示
-  if (item.execution_prompt) {
-    editableResult.value = item.execution_prompt
-  }
+  
+  // 确定要显示的prompt（优先使用执行prompt）
+  const displayPrompt = item.execution_prompt || item.optimized_prompt || ''
+  editableResult.value = displayPrompt
+  
+  // 非常重要：设置 rawPromptResult，否则指标配置会被清空
+  setRawPromptResult(displayPrompt)
+  
   // 恢复报告内容
   selectedReportResult.value = item.generated_report || ''
+  
+  // 恢复指标配置（存储到响应式变量，传递给 IndicatorSqlPanel）
+  restoredIndicators.value = []
+  if (item.indicators && Array.isArray(item.indicators)) {
+    restoredIndicators.value = item.indicators.map(item => ({
+      ...item,
+      id: String((item as Record<string, unknown>).id ?? ''),
+      name: String((item as Record<string, unknown>).name ?? ''),
+      variable: String((item as Record<string, unknown>).variable ?? ''),
+      unit: String((item as Record<string, unknown>).unit ?? ''),
+      required: Boolean((item as Record<string, unknown>).required ?? false),
+      description: String((item as Record<string, unknown>).description ?? ''),
+      sqlConfig: (item as Record<string, unknown>).sqlConfig || null,
+    }))
+    setIndicatorsFromHistory(item.indicators)
+  }
+  
+  // 恢复自定义指标配置（存储到响应式变量，传递给 IndicatorSqlPanel）
+  restoredCustomIndicators.value = []
+  if (item.custom_indicators && Array.isArray(item.custom_indicators)) {
+    restoredCustomIndicators.value = item.custom_indicators.map(item => ({
+      ...item,
+      id: String((item as Record<string, unknown>).id ?? ''),
+      name: String((item as Record<string, unknown>).name ?? ''),
+      variable: String((item as Record<string, unknown>).variable ?? ''),
+      unit: String((item as Record<string, unknown>).unit ?? ''),
+      description: String((item as Record<string, unknown>).description ?? ''),
+      sqlConfig: (item as Record<string, unknown>).sqlConfig || null,
+    }))
+    setCustomIndicatorsFromHistory(item.custom_indicators)
+  }
 }
 
-// 更新聊天历史记录（用于保存执行prompt和生成的报告）
+// 更新聊天历史记录（用于保存执行prompt、生成的报告和指标配置）
 const updateChatHistory = async (historyId: number, data: {
   executionPrompt?: string
   generatedReport?: string
+  indicators?: Indicator[]
+  customIndicators?: CustomIndicator[]
 }) => {
   try {
     const storedUser = localStorage.getItem('user')
@@ -583,7 +641,9 @@ const updateChatHistory = async (historyId: number, data: {
       },
       body: JSON.stringify({
         execution_prompt: data.executionPrompt || null,
-        generated_report: data.generatedReport || null
+        generated_report: data.generatedReport || null,
+        indicators: data.indicators ? JSON.stringify(data.indicators) : null,
+        custom_indicators: data.customIndicators ? JSON.stringify(data.customIndicators) : null
       })
     })
   } catch (err) {
@@ -601,11 +661,13 @@ const setCurrentHistoryId = (id: number) => {
 
 // 报告生成完成后的处理
 const handleReportGenerated = async (reportContent: string) => {
-  // 如果有当前会话的历史记录ID，更新执行prompt和生成的报告
+  // 如果有当前会话的历史记录ID，更新执行prompt、生成的报告和指标配置
   if (currentHistoryId.value) {
     await updateChatHistory(currentHistoryId.value, {
       executionPrompt: editableResult.value,
-      generatedReport: reportContent
+      generatedReport: reportContent,
+      indicators: indicators.value,
+      customIndicators: customIndicators.value
     })
     // 更新完成后刷新侧边栏列表，确保"已生成报告"标签正确显示
     refreshHistoryList()
@@ -801,6 +863,9 @@ const handleOptimize = async () => {
     setRawPromptResult('')
     // 新一次会话，清空上一次残留的追问历史
     followupHistory.value = []
+    // 清空恢复的指标数据，使用新生成的指标
+    restoredIndicators.value = []
+    restoredCustomIndicators.value = []
     // 生成新的会话ID
     currentSessionId.value = generateSessionId()
 

@@ -9,6 +9,8 @@ export interface ChatHistory {
   generated_report?: string;
   status: 'pending' | 'completed' | 'failed';
   error_message?: string;
+  indicators?: string;
+  custom_indicators?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -23,6 +25,8 @@ export interface CreateChatHistoryRequest {
   generated_report?: string;
   status?: 'pending' | 'completed' | 'failed';
   error_message?: string;
+  indicators?: string;
+  custom_indicators?: string;
 }
 
 export interface UpdateChatHistoryRequest {
@@ -31,4 +35,6 @@ export interface UpdateChatHistoryRequest {
   generated_report?: string;
   status?: 'pending' | 'completed' | 'failed';
   error_message?: string;
+  indicators?: string;
+  custom_indicators?: string;
 }

@@ -18,6 +18,27 @@
       <NTooltip trigger="hover">
         <template #trigger>
           <NButton
+            type="primary"
+            size="small"
+            circle
+            class="run-button"
+            :loading="isRunning"
+            :disabled="!canExecute"
+            @click="handleExecute"
+          >
+            <template #icon>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </template>
+          </NButton>
+        </template>
+        执行生成报告
+      </NTooltip>
+      <NTooltip trigger="hover">
+        <template #trigger>
+          <NButton
+            type="primary"
             size="small"
             circle
             class="export-button"
@@ -35,26 +56,6 @@
           </NButton>
         </template>
         导出为 DOCX
-      </NTooltip>
-      <NTooltip trigger="hover">
-        <template #trigger>
-          <NButton
-            type="primary"
-            size="small"
-            circle
-            class="run-button"
-            :loading="isRunning"
-            :disabled="!canExecute"
-            @click="handleExecute"
-          >
-            <template #icon>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </template>
-          </NButton>
-        </template>
-        执行生成报告
       </NTooltip>
     </div>
   </NCard>
@@ -346,8 +347,8 @@ const handleSaveFavorite = (data: { content: string; originalContent?: string })
 }
 
 .export-button {
-  background: linear-gradient(135deg, #18a058, #10b981) !important;
-  border-color: #18a058 !important;
+  background: linear-gradient(135deg, #7b3fb2, #8f4fc5) !important;
+  border-color: #7b3fb2 !important;
   color: white !important;
 }
 
