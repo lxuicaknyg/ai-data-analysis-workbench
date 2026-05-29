@@ -17,7 +17,7 @@ import { ref, watch, type Ref } from 'vue'
 import { UI_SETTINGS_KEYS } from '@prompt-optimizer/core'
 import { getPiniaServices } from '../../plugins/pinia'
 
-export type FunctionMode = 'basic' | 'pro' | 'image'
+export type FunctionMode = 'basic' | 'pro' | 'image' | 'report'
 export type BasicSubMode = 'system' | 'user'
 export type ProSubMode = 'multi' | 'variable'
 export type ImageSubMode = 'text2image' | 'image2image' | 'multiimage'
@@ -41,7 +41,7 @@ const createDefaultState = (): GlobalSettingsState => ({
   selectedThemeId: 'cebb',
   preferredLanguage: 'zh-CN',
   builtinTemplateLanguage: 'zh-CN',
-  functionMode: 'basic',
+  functionMode: 'report',
   basicSubMode: 'system',
   proSubMode: 'variable',
   imageSubMode: 'text2image',
@@ -49,7 +49,7 @@ const createDefaultState = (): GlobalSettingsState => ({
 })
 
 const isFunctionMode = (value: unknown): value is FunctionMode =>
-  value === 'basic' || value === 'pro' || value === 'image'
+  value === 'basic' || value === 'pro' || value === 'image' || value === 'report'
 
 const isBasicSubMode = (value: unknown): value is BasicSubMode =>
   value === 'system' || value === 'user'

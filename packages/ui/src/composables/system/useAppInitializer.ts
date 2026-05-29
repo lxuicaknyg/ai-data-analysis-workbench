@@ -29,6 +29,7 @@ import {
   ElectronPreferenceServiceProxy,
   createPreferenceService,
   FavoriteManager,
+  ApiFavoriteManager,
   createImageModelManager,
   createImageService,
   createImageAdapterRegistry,
@@ -188,9 +189,17 @@ export function useAppInitializer(): {
         // 使用 ElectronContextRepoProxy 代替临时方案
         const contextRepo = new ElectronContextRepoProxy();
 
-        // 创建收藏管理器代理
-        const { FavoriteManagerElectronProxy } = await import('@prompt-optimizer/core')
-        favoriteManager = new FavoriteManagerElectronProxy();
+        // 创建收藏管理器：已登录使用后端API（数据持久化），未登录使用本地存储（降级方案）
+        const token = localStorage.getItem('token');
+        if (token) {
+          console.log('[AppInitializer] 用户已登录，使用后端API收藏管理器（Electron）');
+          const { ApiFavoriteManager } = await import('@prompt-optimizer/core');
+          favoriteManager = new ApiFavoriteManager();
+        } else {
+          console.log('[AppInitializer] 用户未登录，使用本地收藏管理器（Electron）');
+          const { FavoriteManagerElectronProxy } = await import('@prompt-optimizer/core');
+          favoriteManager = new FavoriteManagerElectronProxy();
+        }
         favoriteManager = attachFavoriteAssetGc(favoriteManager as any, favoriteImageStorageService)
 
         if (favoriteImageStorageService) {
@@ -421,8 +430,15 @@ export function useAppInitializer(): {
         // 创建 DataManager（需要contextRepo）
         dataManager = createDataManager(modelManagerInstance, templateManagerInstance, historyManagerInstance, preferenceService, contextRepo);
 
-        // 创建收藏管理器
-        favoriteManager = new FavoriteManager(storageProvider);
+        // 创建收藏管理器：已登录使用后端API（数据持久化），未登录使用本地存储（降级方案）
+        const token = localStorage.getItem('token');
+        if (token) {
+          console.log('[AppInitializer] 用户已登录，使用后端API收藏管理器（数据持久化存储）');
+          favoriteManager = new ApiFavoriteManager();
+        } else {
+          console.log('[AppInitializer] 用户未登录，使用本地收藏管理器（登录后可迁移到云端）');
+          favoriteManager = new FavoriteManager(storageProvider);
+        }
         favoriteManager = attachFavoriteAssetGc(favoriteManager as any, favoriteImageStorageService)
 
         if (favoriteImageStorageService) {

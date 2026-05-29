@@ -19,8 +19,9 @@
             <NFlex justify="space-between" align="flex-start" :wrap="false">
                 <!-- 左侧：标题和版本 -->
                 <NSpace vertical :size="8" class="flex-1 min-w-0">
-                    <NSpace align="center" :size="12">
-                        <NText class="text-lg font-semibold">{{
+                    <NFlex align="center">
+                        <div class="panel-accent" style="width: 4px; height: 20px; border-radius: 999px; background: linear-gradient(180deg, #7b3fb2, #c3262f); margin-right: 6px; flex-shrink: 0;"></div>
+                        <NText style="font-size: 18px; font-weight: 700; color: #242832;">{{
                             t("prompt.optimized")
                         }}</NText>
                         <NSpace
@@ -61,7 +62,7 @@
                                 {{ t("prompt.originalVersionTooltip") }}
                             </NTooltip>
                         </NSpace>
-                    </NSpace>
+                    </NFlex>
                 </NSpace>
 
                 <!-- 右侧：操作按钮 -->
@@ -880,6 +881,15 @@ defineExpose({
 .evaluation-entry {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
+}
+
+/* 面板标题炫彩竖线 */
+.panel-accent {
+    width: 4px;
+    height: 16px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #7b3fb2, #c3262f);
     flex-shrink: 0;
 }
 </style>

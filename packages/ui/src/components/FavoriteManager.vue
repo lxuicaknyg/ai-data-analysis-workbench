@@ -10,10 +10,9 @@
       :segmented="true"
       @update:show="(value) => !value && close()"
     >
-      <!-- 工具栏（固定） -->
-      <div class="toolbar">
+      <!-- 工具栏（固定） - 隐藏于 2026-05-27 -->
+      <!-- <div class="toolbar">
         <NSpace justify="space-between" align="center" :wrap="false">
-          <!-- 左侧：搜索和筛选 -->
           <NSpace :size="12" align="center" :wrap="false" style="flex: 1; min-width: 0;">
             <NInput
               v-model:value="searchKeyword"
@@ -52,7 +51,6 @@
             </NText>
           </NSpace>
 
-          <!-- 右侧：操作按钮 -->
           <NSpace :size="8" align="center" :wrap="false">
             <NDropdown
               :options="actionMenuOptions"
@@ -80,58 +78,62 @@
             </NButton>
           </NSpace>
         </NSpace>
-      </div>
+      </div> -->
 
       <!-- 收藏列表（固定区域，无滚动） -->
-      <div class="content">
-      <template v-if="filteredFavorites.length === 0">
-        <n-empty
-          :description="searchKeyword ? t('favorites.manager.emptySearchResult') : t('favorites.manager.emptyDescription')"
-          size="large"
-        >
-          <template #extra>
-            <n-button @click="$emit('optimize-prompt')">
-              {{ t('favorites.manager.startOptimize') }}
-            </n-button>
+      <div class="content-wrapper">
+        <div class="content">
+          <template v-if="filteredFavorites.length === 0">
+            <n-empty
+              :description="searchKeyword ? t('favorites.manager.emptySearchResult') : t('favorites.manager.emptyDescription')"
+              size="large"
+            >
+              <template #extra>
+                <n-button @click="$emit('optimize-prompt')">
+                  {{ t('favorites.manager.startOptimize') }}
+                </n-button>
+              </template>
+            </n-empty>
           </template>
-        </n-empty>
-      </template>
 
-      <template v-else>
-        <!-- 固定网格布局：使用 NGrid 确保卡片大小一致 -->
-        <NGrid :x-gap="20" :y-gap="20" :cols="gridCols">
-          <NGridItem v-for="favorite in paginatedFavorites" :key="favorite.id">
-            <FavoriteCard
-              :favorite="favorite"
-              :category="getCategoryById(favorite.category)"
-              :card-height="cardHeight"
-              @select="handlePreviewFavorite"
-              @copy="handleCopyFavorite"
-              @use="handleUseFavorite"
-              @delete="handleDeleteFavorite"
-              @edit="handleEditFavorite"
-              @share="handleShareFavorite"
-              @toggle-category="handleToggleCategory"
-            />
-          </NGridItem>
-        </NGrid>
-      </template>
+          <template v-else>
+            <!-- 固定网格布局：使用 NGrid 确保卡片大小一致 -->
+            <NGrid :x-gap="20" :y-gap="20" :cols="gridCols">
+              <NGridItem v-for="favorite in paginatedFavorites" :key="favorite.id">
+                <FavoriteCard
+                  :favorite="favorite"
+                  :category="getCategoryById(favorite.category)"
+                  :card-height="cardHeight"
+                  @select="handlePreviewFavorite"
+                  @copy="handleCopyFavorite"
+                  @use="handleUseFavorite"
+                  @delete="handleDeleteFavorite"
+                  @edit="handleEditFavorite"
+                  @share="handleShareFavorite"
+                  @toggle-category="handleToggleCategory"
+                />
+              </NGridItem>
+            </NGrid>
+          </template>
+        </div>
+
+        <!-- 分页（固定在底部，始终显示） -->
+        <div v-if="filteredFavorites.length > 0" class="pagination">
+          <NSpace justify="center">
+            <NPagination
+              v-model:page="currentPage"
+              :page-size="pageSize"
+              :item-count="filteredFavorites.length"
+              show-quick-jumper
+              :page-slot="7"
+            >
+              <template #prefix="{ itemCount }">
+                <NText depth="3">共 {{ itemCount }} 项</NText>
+              </template>
+            </NPagination>
+          </NSpace>
+        </div>
       </div>
-
-      <!-- 分页（固定在底部，始终显示） -->
-    <NSpace v-if="filteredFavorites.length > 0" justify="center" class="pagination">
-      <NPagination
-        v-model:page="currentPage"
-        :page-size="pageSize"
-        :item-count="filteredFavorites.length"
-        show-quick-jumper
-        :page-slot="7"
-      >
-        <template #prefix="{ itemCount }">
-          <NText depth="3">共 {{ itemCount }} 项</NText>
-        </template>
-      </NPagination>
-    </NSpace>
 
     <!-- 收藏预览 -->
     <OutputDisplayFullscreen
@@ -984,17 +986,27 @@ defineExpose({
   }
 }
 
-/* 固定内容区域 */
+/* 内容包装器：包含内容区域和分页 */
+.content-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 580px;
+  width: calc(100% + 64px);
+  margin-left: -32px;
+  margin-right: -32px;
+}
+
+/* 内容区域 */
 .content {
-  @apply p-4;
-  /* 固定内容区域高度，正好容纳网格 */
-  height: 540px; /* 500px 网格 + 40px padding */
-  overflow: hidden;
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 32px;
 }
 
 /* 分页固定在底部 */
 .pagination {
-  @apply p-4 border-t border-gray-200 dark:border-gray-700;
+  padding: 8px 32px;
+  border-top: 1px solid var(--n-border-color);
   background: var(--n-color);
   flex-shrink: 0;
 }

@@ -6,7 +6,7 @@
           <span class="panel-accent"></span>
           <NText class="panel-title">指标 SQL 配置</NText>
           <NText depth="3" class="panel-count">
-            {{ configuredCount }} / {{ indicators.length + customIndicators.length }} 已配置
+            {{ effectiveConfiguredCount }} / {{ effectiveIndicators.length + effectiveCustomIndicators.length }} 已配置
           </NText>
         </NFlex>
       </NFlex>
@@ -24,7 +24,7 @@
 
     <!-- 空态：未调用 /api/optimize 前没有 AI 指标（但可能有自定义指标） -->
     <NFlex
-      v-else-if="indicators.length === 0 && customIndicators.length === 0"
+      v-else-if="effectiveIndicators.length === 0 && effectiveCustomIndicators.length === 0"
       vertical
       align="center"
       :size="8"
@@ -48,14 +48,14 @@
 
     <NFlex v-else-if="!loading" vertical :size="16">
       <!-- 必填指标 -->
-      <div v-if="requiredIndicators.length > 0">
+      <div v-if="effectiveRequiredIndicators.length > 0">
         <NFlex align="center" :size="6" style="margin-bottom: 8px;">
           <NText style="font-size: 13px; font-weight: 600;">必填指标</NText>
-          <NTag size="small" type="error" :bordered="false">{{ requiredIndicators.length }} 项</NTag>
+          <NTag size="small" type="error" :bordered="false">{{ effectiveRequiredIndicators.length }} 项</NTag>
         </NFlex>
         <div class="indicator-list">
           <IndicatorRow
-            v-for="ind in requiredIndicators"
+            v-for="ind in effectiveRequiredIndicators"
             :key="ind.id"
             :indicator="ind"
             :expanded="expandedId === ind.id"
@@ -70,17 +70,17 @@
         </div>
       </div>
 
-      <NDivider v-if="requiredIndicators.length > 0 && optionalIndicators.length > 0" style="margin: 0;" />
+      <NDivider v-if="effectiveRequiredIndicators.length > 0 && effectiveOptionalIndicators.length > 0" style="margin: 0;" />
 
       <!-- 可选指标 -->
-      <div v-if="optionalIndicators.length > 0">
+      <div v-if="effectiveOptionalIndicators.length > 0">
         <NFlex align="center" :size="6" style="margin-bottom: 8px;">
           <NText style="font-size: 13px; font-weight: 600;">可选指标</NText>
-          <NTag size="small" :bordered="false">{{ optionalIndicators.length }} 项</NTag>
+          <NTag size="small" :bordered="false">{{ effectiveOptionalIndicators.length }} 项</NTag>
         </NFlex>
         <div class="indicator-list optional">
           <IndicatorRow
-            v-for="ind in optionalIndicators"
+            v-for="ind in effectiveOptionalIndicators"
             :key="ind.id"
             :indicator="ind"
             :expanded="expandedId === ind.id"
@@ -95,14 +95,14 @@
         </div>
       </div>
 
-      <NDivider v-if="indicators.length > 0" style="margin: 0;" />
+      <NDivider v-if="effectiveIndicators.length > 0" style="margin: 0;" />
 
       <!-- 自定义指标区块 -->
       <div>
         <NFlex align="center" justify="space-between" style="margin-bottom: 8px;">
           <NFlex align="center" :size="6">
             <NText style="font-size: 13px; font-weight: 600;">自定义指标</NText>
-            <NTag size="small" type="info" :bordered="false">{{ customIndicators.length }} 项</NTag>
+            <NTag size="small" type="info" :bordered="false">{{ effectiveCustomIndicators.length }} 项</NTag>
           </NFlex>
           <NButton size="small" type="primary" ghost @click="openAddModal">
             <template #icon><NIcon><PlusIcon /></NIcon></template>
@@ -111,9 +111,9 @@
         </NFlex>
 
         <!-- 自定义指标列表 -->
-        <div v-if="customIndicators.length > 0" class="indicator-list">
+        <div v-if="effectiveCustomIndicators.length > 0" class="indicator-list">
           <CustomIndicatorRow
-            v-for="ind in customIndicators"
+            v-for="ind in effectiveCustomIndicators"
             :key="ind.id"
             :indicator="ind"
             :expanded="expandedId === ind.id"
@@ -190,15 +190,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, watch } from 'vue'
 
-const props = defineProps<{ loading?: boolean }>()
-const loading = computed(() => props.loading ?? false)
 import { NCard, NFlex, NText, NTag, NDivider, NButton, NIcon, NModal, NInput, NSkeleton } from 'naive-ui'
 import { useReportDatabase } from './useReportDatabase'
 import { sanitizeVariableName } from './reportTypes'
 import IndicatorRow from './IndicatorRow.vue'
 import CustomIndicatorRow from './CustomIndicatorRow.vue'
+import type { Indicator, CustomIndicator } from './reportTypes'
+
+const props = defineProps<{ 
+  loading?: boolean 
+  indicators?: Indicator[]
+  customIndicators?: CustomIndicator[]
+}>()
+const loading = computed(() => props.loading ?? false)
 
 // 垂直加号图标
 const PlusIcon = {
@@ -220,13 +226,39 @@ const {
   testSql,
   clearSqlConfig,
   removeIndicator,
+  setIndicatorsFromHistory,
   customIndicators,
   addCustomIndicator,
   removeCustomIndicator,
   isVariableNameTaken,
   saveCustomSqlConfig,
   testCustomSql,
+  setCustomIndicatorsFromHistory,
 } = useReportDatabase()
+
+// ── 监听 props 变化，恢复历史指标配置 ──
+watch(() => props.indicators, (newIndicators) => {
+  if (newIndicators && newIndicators.length > 0) {
+    setIndicatorsFromHistory(newIndicators)
+  }
+}, { immediate: true })
+
+watch(() => props.customIndicators, (newCustomIndicators) => {
+  if (newCustomIndicators && newCustomIndicators.length > 0) {
+    setCustomIndicatorsFromHistory(newCustomIndicators)
+  }
+}, { immediate: true })
+
+// ── 有效数据优先级处理 ──
+// 优先使用 props 传入的数据（用于历史记录恢复），否则使用 useReportDatabase 的数据
+const effectiveIndicators = computed(() => props.indicators ?? indicators.value)
+const effectiveCustomIndicators = computed(() => props.customIndicators ?? customIndicators.value)
+// dataSourceOptions 使用 useReportDatabase 的值（已经是 Select 选项格式）
+const effectiveConfiguredCount = computed(() => configuredCount.value)
+
+// 基于有效指标的分类
+const effectiveRequiredIndicators = computed(() => effectiveIndicators.value.filter(i => i.required))
+const effectiveOptionalIndicators = computed(() => effectiveIndicators.value.filter(i => !i.required))
 
 // ── 展开收起 ──
 const expandedId = ref<string | null>(null)
@@ -306,14 +338,14 @@ function handleAddIndicator() {
 
 .panel-accent {
   width: 4px;
-  height: 16px;
+  height: 20px;
   border-radius: 999px;
   background: linear-gradient(180deg, #7b3fb2, #c3262f);
 }
 
 .panel-title {
   color: #242832;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
 }
 

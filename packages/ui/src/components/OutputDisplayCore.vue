@@ -285,10 +285,11 @@ const emit = defineEmits<{
 
 // 🆕 变量管理功能（Pro / Image 模式）
 // 当前架构以路由为单一真源；不要依赖 legacy 的 Preference-based functionMode。
-const routeFunctionMode = computed<'basic' | 'pro' | 'image'>(() => {
+const routeFunctionMode = computed<'basic' | 'pro' | 'image' | 'report'>(() => {
   const path = routerInstance.currentRoute.value.path || ''
   if (path.startsWith('/pro')) return 'pro'
   if (path.startsWith('/image')) return 'image'
+  if (path.startsWith('/report')) return 'report'
   return 'basic'
 })
 

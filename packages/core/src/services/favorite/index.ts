@@ -1,6 +1,7 @@
 export * from './types';
 export * from './errors';
 export * from './manager';
+export * from './api-manager';
 export * from './type-converter';
 export type {
   FavoritePrompt,

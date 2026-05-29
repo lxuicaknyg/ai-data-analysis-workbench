@@ -6,7 +6,65 @@
         - 左侧: 报告需求输入 + 银行报告 Agent 优化结果（与"基础"模式左侧保持一致）
         - 右侧: 数据管理（预留）+ 数据库接入（预留）
     -->
-    <div class="report-workspace" data-testid="workspace" data-mode="report-analyze">
+    <div class="report-workspace" data-testid="workspace" data-mode="report-analyze" :class="{ 'sidebar-open': showSidebar }">
+        <!-- 侧边栏按钮 -->
+        <button
+            class="sidebar-toggle-btn"
+            @click="toggleSidebar"
+            :class="{ 'open': showSidebar }"
+            :title="showSidebar ? '收起侧边栏' : '展开侧边栏'"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path v-if="!showSidebar" stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                <path v-else stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
+
+        <!-- 侧边栏 -->
+        <Transition name="sidebar">
+            <div v-if="showSidebar" class="sidebar-panel">
+                <div class="sidebar-header">
+                    <h3>历史会话</h3>
+                    <button class="new-session-btn" @click="handleNewSession" title="新建会话">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>新建会话</span>
+                    </button>
+                </div>
+                <div class="sidebar-content">
+                    <div v-if="isLoadingHistory" class="loading-hint">
+                        <NSpin size="small" />
+                        <span>加载中...</span>
+                    </div>
+                    <div v-else-if="chatHistoryList.length === 0" class="empty-hint">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <p>暂无历史记录</p>
+                    </div>
+                    <NScrollbar v-else style="height: calc(100% - 40px);">
+                        <div class="history-list">
+                            <div
+                                v-for="item in chatHistoryList"
+                                :key="item.id"
+                                class="history-item"
+                                :class="{ 'active': selectedHistoryId === item.id }"
+                                @click="selectHistory(item)"
+                            >
+                                <div class="history-title">{{ item.user_input.slice(0, 30) }}{{ item.user_input.length > 30 ? '...' : '' }}</div>
+                                <div class="history-meta">
+                                    <span class="history-date">{{ formatDate(item.created_at) }}</span>
+                                    <span v-if="item.generated_report" class="history-has-report">已生成报告</span>
+                                    <span v-else class="history-draft">草稿</span>
+                                </div>
+                            </div>
+                        </div>
+                    </NScrollbar>
+                </div>
+            </div>
+        </Transition>
+
         <div class="workspace-head">
             <div>
                 <h1>智能数据分析报告</h1>
@@ -34,7 +92,8 @@
                             align="center"
                         >
                             <NFlex align="center" :size="8">
-                                <NText :depth="1" style="font-size: 18px; font-weight: 500">
+                                <div class="panel-accent" style="width: 4px; height: 20px; border-radius: 999px; background: linear-gradient(180deg, #7b3fb2, #c3262f); margin-right: 6px; flex-shrink: 0;"></div>
+                                <NText :depth="1" style="font-size: 18px; font-weight: 700; color: #242832;">
                                     报告需求
                                 </NText>
                                 <NText
@@ -186,6 +245,8 @@
                             :show-preview="false"
                             :show-render-tab="false"
                             :show-iterate-button="false"
+                            :enable-favorite="true"
+                            @save-favorite="handleSaveFavorite"
                         />
                     </NCard>
                 </NFlex>
@@ -205,8 +266,14 @@
 
             <!-- 右侧：指标SQL配置 + 执行面板 -->
             <div class="split-pane right-pane">
-                <IndicatorSqlPanel :loading="isLoading" class="bank-panel" style="flex-shrink: 0;" />
-                <ReportExecutePanel :prompt="editableResult" style="flex: 1; min-height: 0; display: flex; flex-direction: column;" />
+                <IndicatorSqlPanel 
+  :loading="isLoading" 
+  :indicators="restoredIndicators.length > 0 ? restoredIndicators : undefined"
+  :custom-indicators="restoredCustomIndicators.length > 0 ? restoredCustomIndicators : undefined"
+  class="bank-panel" 
+  style="flex-shrink: 0;" 
+/>
+                <ReportExecutePanel :prompt="editableResult" :result="selectedReportResult" style="flex: 1; min-height: 0; display: flex; flex-direction: column;" @report-generated="handleReportGenerated" />
             </div>
         </div>
 
@@ -226,16 +293,16 @@
  * 注意：所有状态（包括 showClarificationModal）使用组件本地 ref，
  * 确保 NModal 的 v-model 绑定到本地 ref，避免响应式失效问题。
  */
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NCard, NFlex, NText, NButton, NIcon, NInput, NSelect } from 'naive-ui'
+import { NCard, NFlex, NText, NButton, NIcon, NInput, NSelect, NScrollbar, NSpin } from 'naive-ui'
 import { useToast } from '../../composables/ui/useToast'
 import InputPanelUI from '../InputPanel.vue'
 import PromptPanelUI from '../PromptPanel.vue'
 import IndicatorSqlPanel from './IndicatorSqlPanel.vue'
 import ReportExecutePanel from './ReportExecutePanel.vue'
 import { useReportDatabase, renderPromptWithVariables } from './useReportDatabase'
-import type { MetricConfigFromApi } from './reportTypes'
+import type { MetricConfigFromApi, Indicator, CustomIndicator } from './reportTypes'
 
 const { t } = useI18n()
 function getRuntimeConfigValue(key: string): string {
@@ -269,6 +336,27 @@ const BANK_REPORT_AGENT_URL = `${BANK_AGENT_BASE}/api/optimize`
 
 const toast = useToast()
 
+// 注入全局收藏处理函数
+const globalHandleSaveFavorite = inject<((data: { content: string; originalContent?: string }) => void) | null>(
+  'handleSaveFavorite',
+  null
+)
+
+// 处理收藏保存
+const handleSaveFavorite = (data: { content: string; originalContent?: string }) => {
+  if (!globalHandleSaveFavorite) {
+    console.warn('[ReportWorkspace] handleSaveFavorite not available from App.vue')
+    return
+  }
+
+  if (!data.content) {
+    console.warn('[ReportWorkspace] No content to save')
+    return
+  }
+
+  globalHandleSaveFavorite(data)
+}
+
 // 固定的 Agent 选项
 const agentOptions = [{ label: '数据分析报告Agent', value: 'bank-report-agent' }]
 const selectedAgent = ref('bank-report-agent')
@@ -286,6 +374,10 @@ const {
   variableValues,
   finalRawPrompt,
   setRawPromptResult,
+  indicators,
+  customIndicators,
+  setIndicatorsFromHistory,
+  setCustomIndicatorsFromHistory,
 } = useReportDatabase()
 
 /**
@@ -319,6 +411,418 @@ const followupInputRef = ref<InstanceType<typeof NInput> | null>(null)
  * 避免后端多轮丢失前面已澄清的信息。
  */
 const followupHistory = ref<string[]>([])
+
+// 会话ID - 每次新会话生成一个唯一ID
+const currentSessionId = ref('')
+
+const generateSessionId = () => {
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+}
+
+// 后端认证服务基础URL
+const AUTH_SERVER_BASE = 'http://localhost:3001'
+
+// 保存聊天历史记录
+const saveChatHistory = async (data: {
+  userInput: string
+  username: string
+  sessionId: string
+  optimizedPrompt: string
+  executionPrompt?: string
+  generatedReport?: string
+}): Promise<number | null> => {
+  try {
+    const storedUser = localStorage.getItem('user')
+    if (!storedUser) {
+      console.warn('用户未登录，无法保存聊天历史')
+      return null
+    }
+    
+    const userInfo = JSON.parse(storedUser)
+    const token = userInfo.token
+    
+    if (!token) {
+      console.warn('没有token，无法保存聊天历史')
+      return null
+    }
+
+    // 获取当前指标配置数据
+    const currentIndicators = indicators.value || []
+    const currentCustomIndicators = customIndicators.value || []
+
+    const response = await fetch(`${AUTH_SERVER_BASE}/api/chat-history`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        user_id: String(userInfo.id),
+        username: data.username,
+        session_id: data.sessionId,
+        user_input: data.userInput,
+        optimized_prompt: data.optimizedPrompt,
+        execution_prompt: data.executionPrompt || null,
+        generated_report: data.generatedReport || null,
+        status: 'completed',
+        indicators: currentIndicators.length > 0 ? JSON.stringify(currentIndicators) : null,
+        custom_indicators: currentCustomIndicators.length > 0 ? JSON.stringify(currentCustomIndicators) : null
+      })
+    })
+
+    if (response.ok) {
+      const result = await response.json()
+      // 保存历史记录ID，用于后续更新
+      if (result.id) {
+        currentHistoryId.value = result.id
+      }
+      return result.id || null
+    }
+    return null
+  } catch (err) {
+    console.error('保存历史记录失败', err)
+    return null
+  }
+}
+
+// 侧边栏状态
+const showSidebar = ref(false)
+const chatHistoryList = ref<ChatHistoryItem[]>([])
+const selectedHistoryId = ref<number | null>(null)
+const isLoadingHistory = ref(false)
+
+// 历史记录类型
+interface ChatHistoryItem {
+  id: number
+  user_id: string
+  session_id: string
+  user_input: string
+  optimized_prompt?: string
+  execution_prompt?: string
+  generated_report?: string
+  status: string
+  created_at: string
+  updated_at: string
+  indicators?: string
+  custom_indicators?: string
+}
+
+// 切换侧边栏
+const toggleSidebar = async () => {
+  showSidebar.value = !showSidebar.value
+  if (showSidebar.value) {
+    await loadChatHistory()
+  }
+}
+
+// 新建会话
+const handleNewSession = () => {
+  resetWorkspaceState()
+  selectedHistoryId.value = null
+}
+
+// 刷新历史列表
+const refreshHistoryList = async () => {
+  await loadChatHistory()
+}
+
+// 加载历史记录列表
+const loadChatHistory = async () => {
+  try {
+    const storedUser = localStorage.getItem('user')
+    if (!storedUser) {
+      console.warn('用户未登录，无法加载聊天历史')
+      return
+    }
+    
+    const userInfo = JSON.parse(storedUser)
+    const token = userInfo.token
+    
+    if (!token) {
+      console.warn('没有token，无法加载聊天历史')
+      return
+    }
+
+    isLoadingHistory.value = true
+    
+    const response = await fetch(`${AUTH_SERVER_BASE}/api/chat-history/user/${userInfo.id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      // 按创建时间倒序排列
+      chatHistoryList.value = data.sort((a: ChatHistoryItem, b: ChatHistoryItem) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+    } else {
+      console.error('加载历史记录失败')
+    }
+  } catch (err) {
+    console.error('加载历史记录失败', err)
+  } finally {
+    isLoadingHistory.value = false
+  }
+}
+
+// 选择历史记录
+// 当前选中的报告内容
+const selectedReportResult = ref('')
+
+// 历史记录恢复的指标数据（用于传递给 IndicatorSqlPanel）
+const restoredIndicators = ref<Indicator[]>([])
+const restoredCustomIndicators = ref<CustomIndicator[]>([])
+
+const selectHistory = (item: ChatHistoryItem) => {
+  selectedHistoryId.value = item.id
+  // 设置当前历史记录ID，以便后续更新报告内容
+  currentHistoryId.value = item.id
+  // 填充到输入框和结果区域
+  prompt.value = item.user_input || ''
+  
+  // 确定要显示的prompt（优先使用执行prompt）
+  const displayPrompt = item.execution_prompt || item.optimized_prompt || ''
+  editableResult.value = displayPrompt
+  
+  // 非常重要：设置 rawPromptResult，否则指标配置会被清空
+  setRawPromptResult(displayPrompt)
+  
+  // 恢复报告内容
+  selectedReportResult.value = item.generated_report || ''
+  
+  // 恢复指标配置（存储到响应式变量，传递给 IndicatorSqlPanel）
+  restoredIndicators.value = []
+  if (item.indicators && Array.isArray(item.indicators)) {
+    restoredIndicators.value = item.indicators.map(item => ({
+      ...item,
+      id: String((item as Record<string, unknown>).id ?? ''),
+      name: String((item as Record<string, unknown>).name ?? ''),
+      variable: String((item as Record<string, unknown>).variable ?? ''),
+      unit: String((item as Record<string, unknown>).unit ?? ''),
+      required: Boolean((item as Record<string, unknown>).required ?? false),
+      description: String((item as Record<string, unknown>).description ?? ''),
+      sqlConfig: (item as Record<string, unknown>).sqlConfig || null,
+    }))
+    setIndicatorsFromHistory(item.indicators)
+  }
+  
+  // 恢复自定义指标配置（存储到响应式变量，传递给 IndicatorSqlPanel）
+  restoredCustomIndicators.value = []
+  if (item.custom_indicators && Array.isArray(item.custom_indicators)) {
+    restoredCustomIndicators.value = item.custom_indicators.map(item => ({
+      ...item,
+      id: String((item as Record<string, unknown>).id ?? ''),
+      name: String((item as Record<string, unknown>).name ?? ''),
+      variable: String((item as Record<string, unknown>).variable ?? ''),
+      unit: String((item as Record<string, unknown>).unit ?? ''),
+      description: String((item as Record<string, unknown>).description ?? ''),
+      sqlConfig: (item as Record<string, unknown>).sqlConfig || null,
+    }))
+    setCustomIndicatorsFromHistory(item.custom_indicators)
+  }
+}
+
+// 更新聊天历史记录（用于保存执行prompt、生成的报告和指标配置）
+const updateChatHistory = async (historyId: number, data: {
+  executionPrompt?: string
+  generatedReport?: string
+  indicators?: Indicator[]
+  customIndicators?: CustomIndicator[]
+}) => {
+  try {
+    const storedUser = localStorage.getItem('user')
+    if (!storedUser) {
+      console.warn('用户未登录，无法更新聊天历史')
+      return
+    }
+    
+    const userInfo = JSON.parse(storedUser)
+    const token = userInfo.token
+    
+    if (!token) {
+      console.warn('没有token，无法更新聊天历史')
+      return
+    }
+
+    await fetch(`${AUTH_SERVER_BASE}/api/chat-history/${historyId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        execution_prompt: data.executionPrompt || null,
+        generated_report: data.generatedReport || null,
+        indicators: data.indicators ? JSON.stringify(data.indicators) : null,
+        custom_indicators: data.customIndicators ? JSON.stringify(data.customIndicators) : null
+      })
+    })
+  } catch (err) {
+    console.error('更新历史记录失败', err)
+  }
+}
+
+// 当前会话的历史记录ID（用于后续更新）
+const currentHistoryId = ref<number | null>(null)
+
+// 设置当前历史记录ID
+const setCurrentHistoryId = (id: number) => {
+  currentHistoryId.value = id
+}
+
+// 报告生成完成后的处理
+const handleReportGenerated = async (reportContent: string) => {
+  // 如果有当前会话的历史记录ID，更新执行prompt、生成的报告和指标配置
+  if (currentHistoryId.value) {
+    await updateChatHistory(currentHistoryId.value, {
+      executionPrompt: editableResult.value,
+      generatedReport: reportContent,
+      indicators: indicators.value,
+      customIndicators: customIndicators.value
+    })
+    // 更新完成后刷新侧边栏列表，确保"已生成报告"标签正确显示
+    refreshHistoryList()
+  }
+}
+
+// 格式化日期
+const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  
+  // 小于1分钟
+  if (diff < 60000) {
+    return '刚刚'
+  }
+  // 小于1小时
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`
+  }
+  // 小于24小时
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`
+  }
+  // 今年
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${date.getMonth() + 1}月${date.getDate()}日`
+  }
+  // 其他年份
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+}
+
+// 组件挂载时尝试加载历史记录（如果侧边栏已打开）
+onMounted(() => {
+  // 初始化当前用户 ID
+  const storedUser = localStorage.getItem('user')
+  if (storedUser) {
+    const userInfo = JSON.parse(storedUser)
+    currentUserIdRef.value = userInfo.id
+  }
+  
+  // 重置工作区状态，确保每次进入都是干净的界面
+  resetWorkspaceState()
+  
+  if (showSidebar.value) {
+    loadChatHistory()
+  }
+  
+  // 监听用户变化，用户切换时重置状态
+  // 注意：storage 事件只在其他标签页修改 localStorage 时触发
+  window.addEventListener('storage', handleUserChange)
+  
+  // 当前标签页主动轮询检测用户变化（每 500ms 检查一次）
+  checkUserChangeInterval = setInterval(checkUserChange, 500)
+})
+
+// 组件卸载时清理监听器
+onUnmounted(() => {
+  window.removeEventListener('storage', handleUserChange)
+  if (checkUserChangeInterval) {
+    clearInterval(checkUserChangeInterval)
+  }
+})
+
+// 轮询检测用户变化
+let checkUserChangeInterval: ReturnType<typeof setInterval> | null = null
+let lastUserId: string | null = null
+
+// 检查用户变化
+const checkUserChange = () => {
+  const storedUser = localStorage.getItem('user')
+  const currentUserId = storedUser ? JSON.parse(storedUser).id : null
+  
+  // 检测用户变化（登录/登出/切换用户）
+  if (lastUserId === null && currentUserId !== null) {
+    // 用户登录
+    lastUserId = currentUserId
+  } else if (lastUserId !== null && currentUserId === null) {
+    // 用户登出
+    lastUserId = null
+    resetWorkspaceState()
+  } else if (lastUserId !== null && currentUserId !== null && lastUserId !== currentUserId) {
+    // 用户切换
+    lastUserId = currentUserId
+    resetWorkspaceState()
+  }
+}
+
+// 处理用户变化（登录/登出/切换用户）- 用于其他标签页
+const handleUserChange = () => {
+  const storedUser = localStorage.getItem('user')
+  if (!storedUser) {
+    // 用户登出，重置所有状态
+    resetWorkspaceState()
+    return
+  }
+  
+  const userInfo = JSON.parse(storedUser)
+  // 检查是否是同一个用户
+  const currentUserId = currentUserIdRef.value
+  if (currentUserId !== userInfo.id) {
+    // 用户切换，重置状态
+    currentUserIdRef.value = userInfo.id
+    resetWorkspaceState()
+  }
+}
+
+// 当前用户 ID（用于检测用户切换）
+const currentUserIdRef = ref<string | null>(null)
+
+// 重置工作区状态
+const resetWorkspaceState = () => {
+  // 重置输入和结果
+  prompt.value = ''
+  editableResult.value = ''
+  setRawPromptResult('')  // 通过 setRawPromptResult 来重置 finalRawPrompt，从而清空 result
+  
+  // 重置会话 ID 和历史记录 ID
+  currentSessionId.value = generateSessionId()
+  currentHistoryId.value = null
+  selectedHistoryId.value = null
+  
+  // 重置追问历史
+  followupHistory.value = []
+  showClarification.value = false
+  clarificationQuestion.value = ''
+  followupAnswer.value = ''
+  
+  // 重置指标配置（使用 useReportDatabase 内部的方法）
+  // 注意：indicators 是模块级单例，不能直接重置，需要通过 setIndicatorsFromMetricsConfig([]) 清空
+  setIndicatorsFromMetricsConfig([])
+  
+  // 清空恢复的指标数据（传递给 IndicatorSqlPanel）
+  restoredIndicators.value = []
+  restoredCustomIndicators.value = []
+  
+  // 清空报告内容
+  selectedReportResult.value = ''
+  
+  console.log('[ReportWorkspace] 工作区状态已重置')
+}
 
 // ========================
 // 分割线拖拽
@@ -380,6 +884,15 @@ const handleOptimize = async () => {
     setRawPromptResult('')
     // 新一次会话，清空上一次残留的追问历史
     followupHistory.value = []
+    // 清空恢复的指标数据，使用新生成的指标
+    restoredIndicators.value = []
+    restoredCustomIndicators.value = []
+    // 生成新的会话ID
+    currentSessionId.value = generateSessionId()
+
+    // 获取用户信息
+    const storedUser = localStorage.getItem('user')
+    const userInfo = storedUser ? JSON.parse(storedUser) : null
 
     try {
         const res = await fetch(BANK_REPORT_AGENT_URL, {
@@ -404,6 +917,15 @@ const handleOptimize = async () => {
             applyOptimizeResult(data)
             isLoading.value = false
             toast.success('报告 Prompt 生成成功')
+            // 保存聊天历史记录
+            await saveChatHistory({
+                userInput: prompt.value,
+                sessionId: currentSessionId.value,
+                username: userInfo?.username || '',
+                optimizedPrompt: data.optimized_prompt || ''
+            })
+            // 刷新历史列表
+            await refreshHistoryList()
         }
     } catch (e) {
         isLoading.value = false
@@ -420,6 +942,10 @@ const handleFollowup = async () => {
     // 本轮回复先合成到"候选历史"，发给后端；后端认可（无论又追问还是出结果）后再落盘
     const nextAnswers = [...followupHistory.value, answer]
     showClarification.value = false
+
+    // 获取用户信息
+    const storedUser = localStorage.getItem('user')
+    const userInfo = storedUser ? JSON.parse(storedUser) : null
 
     try {
         const res = await fetch(BANK_REPORT_AGENT_URL, {
@@ -451,6 +977,15 @@ const handleFollowup = async () => {
             showClarification.value = false
             isLoading.value = false
             toast.success('报告 Prompt 生成成功')
+            // 保存聊天历史记录（追问流程完成后）
+            await saveChatHistory({
+                userInput: prompt.value,
+                sessionId: currentSessionId.value,
+                username: userInfo?.username || '',
+                optimizedPrompt: data.optimized_prompt || ''
+            })
+            // 刷新历史列表
+            await refreshHistoryList()
         }
     } catch (e) {
         isLoading.value = false
@@ -477,6 +1012,11 @@ const cancelClarification = () => {
     overflow: hidden;
     gap: 14px;
     color: #242832;
+    transition: margin-left 0.3s ease;
+}
+
+.report-workspace.sidebar-open {
+    margin-left: 280px;
 }
 
 .workspace-head {
@@ -628,5 +1168,223 @@ const cancelClarification = () => {
         flex-direction: column;
         gap: 8px;
     }
+}
+
+/* 侧边栏按钮 */
+.sidebar-toggle-btn {
+    position: fixed;
+    left: 0;
+    top: 88px;
+    z-index: 100;
+    width: 28px;
+    height: 48px;
+    background: rgba(111, 50, 155, 0.9);
+    color: #fff;
+    border: none;
+    border-radius: 0 6px 6px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-toggle-btn:hover {
+    background: rgba(111, 50, 155, 1);
+    width: 32px;
+}
+
+.sidebar-toggle-btn.open {
+    left: 280px;
+}
+
+.sidebar-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.3s ease;
+}
+
+/* 侧边栏面板 */
+.sidebar-panel {
+    position: fixed;
+    left: 0;
+    top: 88px;
+    bottom: 0;
+    width: 280px;
+    background: #fff;
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+    z-index: 99;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(111, 50, 155, 0.1);
+    flex-shrink: 0;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #20242d;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow: hidden;
+    padding: 12px;
+}
+
+/* 侧边栏动画 */
+.sidebar-enter-active,
+.sidebar-leave-active {
+    transition: transform 0.3s ease;
+}
+
+.sidebar-enter-from,
+.sidebar-leave-to {
+    transform: translateX(-100%);
+}
+
+/* 加载提示 */
+.loading-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    padding: 40px 20px;
+    color: #999;
+    font-size: 13px;
+}
+
+/* 空提示 */
+.empty-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #999;
+}
+
+.empty-hint svg {
+    color: #ddd;
+    margin-bottom: 12px;
+}
+
+.empty-hint p {
+    margin: 0;
+    font-size: 13px;
+}
+
+/* 历史列表 */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.history-item {
+    padding: 12px 14px;
+    background: #f8f7fa;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.history-item:hover {
+    background: #f0edf5;
+    border-color: rgba(111, 50, 155, 0.15);
+}
+
+.history-item.active {
+    background: rgba(111, 50, 155, 0.08);
+    border-color: rgba(111, 50, 155, 0.3);
+}
+
+.history-title {
+    font-size: 13px;
+    color: #20242d;
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.history-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.history-date {
+    font-size: 11px;
+    color: #999;
+}
+
+.history-has-report {
+    font-size: 10px;
+    color: #18a058;
+    background: rgba(24, 160, 88, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+}
+
+.history-draft {
+    font-size: 10px;
+    color: #8c8c8c;
+    background: rgba(140, 140, 140, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+}
+
+/* 面板标题炫彩竖线 */
+.panel-accent {
+    width: 4px;
+    height: 20px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #7b3fb2, #c3262f);
+}
+
+/* 新建会话按钮 */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.new-session-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #6f329b;
+    background: rgba(111, 50, 155, 0.08);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.new-session-btn:hover {
+    background: rgba(111, 50, 155, 0.15);
+    color: #5b2585;
+}
+
+.new-session-btn svg {
+    width: 14px;
+    height: 14px;
 }
 </style>

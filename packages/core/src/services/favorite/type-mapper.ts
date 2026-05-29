@@ -6,7 +6,7 @@ import type { PromptRecordType } from '../history/types';
  */
 export interface FunctionModeMapping {
   /** 功能模式 (一级分类) */
-  functionMode: 'basic' | 'context' | 'image';
+  functionMode: 'basic' | 'context' | 'image' | 'report';
   /** 优化模式 (二级分类,仅用于 basic/context 模式) */
   optimizationMode?: 'system' | 'user';
   /** 图像子模式 (二级分类,仅用于 image 模式) */
@@ -111,7 +111,7 @@ export class TypeMapper {
     }
 
     // 检查功能模式值合法性
-    if (!['basic', 'context', 'image'].includes(mapping.functionMode)) {
+    if (!['basic', 'context', 'image', 'report'].includes(mapping.functionMode)) {
       return false;
     }
 
@@ -139,6 +139,16 @@ export class TypeMapper {
       }
       // 图像模式不应有 optimizationMode
       if (mapping.optimizationMode) {
+        return false;
+      }
+    }
+
+    // 智能报告模式不应有 optimizationMode 或 imageSubMode
+    if (mapping.functionMode === 'report') {
+      if (mapping.optimizationMode) {
+        return false;
+      }
+      if (mapping.imageSubMode) {
         return false;
       }
     }

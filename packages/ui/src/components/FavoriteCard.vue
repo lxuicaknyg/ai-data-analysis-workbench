@@ -177,8 +177,8 @@
     <!-- 卡片底部：使用 NSpace 布局 -->
     <template #footer>
       <NSpace justify="space-between" align="center" :wrap="false">
-        <!-- 左侧信息 -->
-        <NSpace :size="12" align="center" :wrap="false">
+        <!-- 左侧信息 - 隐藏于 2026-05-27 -->
+        <!-- <NSpace :size="12" align="center" :wrap="false">
           <NText depth="3" style="font-size: 12px; white-space: nowrap;">
             {{ formatDate(favorite.updatedAt) }}
           </NText>
@@ -199,7 +199,7 @@
             </template>
             {{ t('favorites.manager.card.useCount') }}
           </NTooltip>
-        </NSpace>
+        </NSpace> -->
 
         <!-- 右侧操作按钮 -->
         <NSpace :size="4" class="card-actions">
@@ -220,7 +220,8 @@
             {{ t('favorites.manager.card.copyContent') }}
           </NTooltip>
 
-          <NTooltip
+          <!-- 隐藏"立即使用"按钮 - 2026-05-27 -->
+          <!-- <NTooltip
             trigger="hover"
             :overlay-style="tooltipOverlayStyle"
             :content-style="tooltipContentStyle"
@@ -235,9 +236,10 @@
               </NButton>
             </template>
             {{ t('favorites.manager.card.useNow') }}
-          </NTooltip>
+          </NTooltip> -->
 
-          <NTooltip
+          <!-- 隐藏"编辑"按钮 - 2026-05-27 -->
+          <!-- <NTooltip
             trigger="hover"
             :overlay-style="tooltipOverlayStyle"
             :content-style="tooltipContentStyle"
@@ -252,7 +254,7 @@
               </NButton>
             </template>
             {{ t('favorites.manager.card.edit') }}
-          </NTooltip>
+          </NTooltip> -->
 
           <NPopconfirm
             @positive-click="$emit('delete', favorite)"

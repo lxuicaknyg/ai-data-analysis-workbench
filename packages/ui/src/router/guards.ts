@@ -1,5 +1,6 @@
 import type { NavigationGuard } from 'vue-router'
 import type { SubModeKey } from '../stores/session/useSessionManager'
+import { useAuthStore } from '../stores/auth/useAuthStore'
 
 /**
  * 从路由路径解析子模式 key
@@ -70,6 +71,50 @@ export const beforeRouteSwitch: NavigationGuard = (to) => {
       console.warn(`[Router] 非法 subMode: ${to.path}, 重定向到 /${mode}/${defaultSubMode}`)
       return `/${mode}/${defaultSubMode}`
     }
+  }
+
+  return true
+}
+
+/**
+ * 登录认证守卫
+ * 
+ * 功能：
+ * 1. 检查用户是否已登录
+ * 2. 未登录用户重定向到登录页
+ * 3. 登录页和公共页面不受限制
+ */
+export const requireAuth: NavigationGuard = (to, from) => {
+  const authStore = useAuthStore()
+  
+  // 登录页面不需要认证
+  if (to.path === '/login') {
+    return true
+  }
+
+  // 检查是否需要认证
+  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+    console.warn('[Router] 用户未登录，重定向到登录页')
+    return '/login'
+  }
+
+  return true
+}
+
+/**
+ * 管理员权限守卫
+ * 
+ * 功能：
+ * 1. 检查用户是否为管理员
+ * 2. 非管理员用户访问管理员页面时重定向到首页
+ */
+export const requireAdmin: NavigationGuard = (to) => {
+  const authStore = useAuthStore()
+
+  // 检查是否需要管理员权限
+  if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    console.warn('[Router] 用户没有管理员权限')
+    return '/'
   }
 
   return true

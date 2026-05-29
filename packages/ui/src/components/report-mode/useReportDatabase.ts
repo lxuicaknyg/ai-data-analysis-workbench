@@ -220,9 +220,28 @@ function removeVariableLine(text: string, variable: string): string {
     .trim()
 }
 
+// ─── 清除报告状态（用于登出时重置）─────────────
+
+/**
+ * 清除所有报告相关状态（用户登出时调用）
+ * - 清空指标列表、自定义指标、原始prompt
+ * - 清空对应的 localStorage 存储
+ */
+export function clearReportState() {
+  indicators.value = []
+  rawPromptResult.value = ''
+  customIndicators.value = []
+  
+  saveToStorage(STORAGE_KEY_INDICATORS, [])
+  saveToStorage(STORAGE_KEY_RAW_PROMPT, '')
+  saveToStorage(STORAGE_KEY_CUSTOM_INDICATORS, [])
+  
+  console.log('[useReportDatabase] 报告状态已清空')
+}
+
 // ─── Composable ───────────────────────────────
 
-export function useReportDatabase() {
+function createReportDatabase() {
   // ── 数据源 ──────────────────────────────────
 
   const isDataSourceSaving = ref(false)
@@ -671,6 +690,75 @@ export function useReportDatabase() {
     }
   }
 
+  /**
+   * 从历史记录恢复指标配置
+   * @param data 从数据库读取的指标数据
+   */
+  function setIndicatorsFromHistory(data: unknown[]) {
+    if (!Array.isArray(data)) return
+    indicators.value = data.map(item => {
+      const record = item as Record<string, unknown>
+      return {
+        id: String(record.id ?? ''),
+        name: String(record.name ?? ''),
+        variable: String(record.variable ?? ''),
+        unit: String(record.unit ?? ''),
+        required: Boolean(record.required ?? false),
+        description: String(record.description ?? ''),
+        sqlConfig: (record.sqlConfig && typeof record.sqlConfig === 'object')
+          ? {
+              sql: String((record.sqlConfig as Record<string, unknown>).sql ?? ''),
+              dataSourceId: String((record.sqlConfig as Record<string, unknown>).dataSourceId ?? ''),
+              description: String((record.sqlConfig as Record<string, unknown>).description ?? ''),
+              testStatus: String((record.sqlConfig as Record<string, unknown>).testStatus ?? 'untested'),
+              testResult: (record.sqlConfig as Record<string, unknown>).testResult as string | undefined,
+              testError: (record.sqlConfig as Record<string, unknown>).testError as string | undefined,
+              testColumns: ((record.sqlConfig as Record<string, unknown>).testColumns as string[]) || undefined,
+              testRows: ((record.sqlConfig as Record<string, unknown>).testRows as string[][]) || undefined,
+              testRowCount: Number((record.sqlConfig as Record<string, unknown>).testRowCount) || undefined,
+              executeTimeMs: Number((record.sqlConfig as Record<string, unknown>).executeTimeMs) || undefined,
+              savedAt: String((record.sqlConfig as Record<string, unknown>).savedAt ?? ''),
+            }
+          : null,
+      } as Indicator
+    })
+    saveToStorage(STORAGE_KEY_INDICATORS, indicators.value)
+  }
+
+  /**
+   * 从历史记录恢复自定义指标配置
+   * @param data 从数据库读取的自定义指标数据
+   */
+  function setCustomIndicatorsFromHistory(data: unknown[]) {
+    if (!Array.isArray(data)) return
+    customIndicators.value = data.map(item => {
+      const record = item as Record<string, unknown>
+      return {
+        id: String(record.id ?? ''),
+        name: String(record.name ?? ''),
+        variable: String(record.variable ?? ''),
+        unit: String(record.unit ?? ''),
+        description: String(record.description ?? ''),
+        sqlConfig: (record.sqlConfig && typeof record.sqlConfig === 'object')
+          ? {
+              sql: String((record.sqlConfig as Record<string, unknown>).sql ?? ''),
+              dataSourceId: String((record.sqlConfig as Record<string, unknown>).dataSourceId ?? ''),
+              description: String((record.sqlConfig as Record<string, unknown>).description ?? ''),
+              testStatus: String((record.sqlConfig as Record<string, unknown>).testStatus ?? 'untested'),
+              testResult: (record.sqlConfig as Record<string, unknown>).testResult as string | undefined,
+              testError: (record.sqlConfig as Record<string, unknown>).testError as string | undefined,
+              testColumns: ((record.sqlConfig as Record<string, unknown>).testColumns as string[]) || undefined,
+              testRows: ((record.sqlConfig as Record<string, unknown>).testRows as string[][]) || undefined,
+              testRowCount: Number((record.sqlConfig as Record<string, unknown>).testRowCount) || undefined,
+              executeTimeMs: Number((record.sqlConfig as Record<string, unknown>).executeTimeMs) || undefined,
+              savedAt: String((record.sqlConfig as Record<string, unknown>).savedAt ?? ''),
+            }
+          : null,
+      } as CustomIndicator
+    })
+    saveToStorage(STORAGE_KEY_CUSTOM_INDICATORS, customIndicators.value)
+  }
+
   return {
     // 数据源
     dataSource,
@@ -698,11 +786,13 @@ export function useReportDatabase() {
     configuredCount,
     variableValues,
     setIndicatorsFromMetricsConfig,
+    setIndicatorsFromHistory,
     saveSqlConfig,
     testSql,
     clearSqlConfig,
     removeIndicator,
     // 用户自定义指标
+    setCustomIndicatorsFromHistory,
     customIndicators,
     addCustomIndicator,
     removeCustomIndicator,
@@ -711,4 +801,15 @@ export function useReportDatabase() {
     testCustomSql,
     clearCustomSqlConfig,
   }
+}
+
+// ── 单例模式改造 ──
+// 确保所有组件共享同一状态实例
+let instance: ReturnType<typeof createReportDatabase> | null = null
+
+export function useReportDatabase() {
+  if (!instance) {
+    instance = createReportDatabase()
+  }
+  return instance
 }

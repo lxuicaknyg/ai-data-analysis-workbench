@@ -35,6 +35,28 @@
         </template>
         执行生成报告
       </NTooltip>
+      <NTooltip trigger="hover">
+        <template #trigger>
+          <NButton
+            type="primary"
+            size="small"
+            circle
+            class="export-button"
+            :loading="isExporting"
+            :disabled="!canExport"
+            @click="handleExport"
+          >
+            <template #icon>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </template>
+          </NButton>
+        </template>
+        导出为 DOCX
+      </NTooltip>
     </div>
   </NCard>
 
@@ -83,15 +105,16 @@
       :enable-fullscreen="true"
       :enable-diff="false"
       :enable-edit="false"
-      :enable-favorite="false"
+      :enable-favorite="true"
       :enable-render="true"
       :style="{ height: '100%', minHeight: '0', flex: 1 }"
+      @save-favorite="handleSaveFavorite"
     />
   </NCard>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, type Ref } from 'vue'
+import { ref, computed, inject, onMounted, watch, type Ref } from 'vue'
 import { NCard, NFlex, NText, NButton, NTooltip } from 'naive-ui'
 import type { AppServices } from '../../types/services'
 import type { ModelSelectOption } from '../../types/select-options'
@@ -100,19 +123,69 @@ import { DataTransformer } from '../../utils/data-transformer'
 import OutputDisplay from '../OutputDisplay.vue'
 import SelectWithConfig from '../SelectWithConfig.vue'
 
-const props = defineProps<{ prompt: string }>()
+const props = defineProps<{ 
+  prompt: string 
+  result?: string
+}>()
+const emit = defineEmits<{
+  (e: 'report-generated', result: string): void
+}>()
 const STORAGE_KEY_REPORT_MODEL = 'report/v1/execute_model'
 
 const services = inject<Ref<AppServices | null>>('services')
 
+// 注入全局收藏处理函数
+const globalHandleSaveFavorite = inject<((data: { content: string; originalContent?: string }) => void) | null>(
+  'handleSaveFavorite',
+  null
+)
+
 const selectedModelKey = ref(loadSavedModelKey())
 const modelOptions = ref<ModelSelectOption[]>([])
-const result = ref('')
+const result = ref(props.result || '')
 const isRunning = ref(false)
+const isExporting = ref(false)
 const error = ref('')
+
+// 报告类型定义（从报告内容自动识别）
+const reportTypePatterns: { type: string; keywords: string[] }[] = [
+  { type: '代发业务经营报告', keywords: ['代发业务', '代发客户', '代发交易'] },
+  { type: '公司金融经营报告', keywords: ['对公业务', '公司金融', '实体经济'] },
+  { type: '分支机构经营分析', keywords: ['分行', '支行', '经营画像'] },
+  { type: '对公渠道业务月报', keywords: ['对公渠道', '企业网银', '银企通'] },
+  { type: '快捷支付运营报告', keywords: ['快捷支付', '支付运营', '绑卡'] },
+  { type: '零售晨夕会经营数据', keywords: ['晨夕会', '零售条线', 'AUM'] },
+  { type: '机构业务存贷日报', keywords: ['机构客户', '存贷日报', '大额资金'] },
+  { type: '科技金融客群报告', keywords: ['科技金融', '专精特新', '高新技术'] },
+  { type: '运营业务数据报告', keywords: ['运营管理', '支付系统', '网点效能'] },
+  { type: '金融市场久期简报', keywords: ['久期', '债券', '金融市场'] },
+  { type: '零售信贷经营月报', keywords: ['零售信贷', '贷款定价', '资产质量'] },
+  { type: '零售存款日报简报', keywords: ['零售存款', '存款日报', '产品销量'] },
+]
+
+// 根据报告内容自动识别报告类型
+function detectReportType(content: string): string {
+  for (const { type, keywords } of reportTypePatterns) {
+    if (keywords.some(keyword => content.includes(keyword))) {
+      return type
+    }
+  }
+  return '智能报告' // 默认类型
+}
+
+// 监听props.result变化，同步更新报告内容
+watch(() => props.result, (newResult) => {
+  if (newResult !== undefined) {
+    result.value = newResult
+  }
+})
 
 const canExecute = computed(() =>
   !!props.prompt.trim() && !!selectedModelKey.value && !isRunning.value
+)
+
+const canExport = computed(() =>
+  !!result.value && !isRunning.value
 )
 
 onMounted(async () => {
@@ -214,6 +287,8 @@ async function handleExecute() {
           const fenceMatch = trimmed.match(/^```(?:\w*)\n([\s\S]*?)\n?```\s*$/)
           if (fenceMatch) result.value = fenceMatch[1]
           isRunning.value = false
+          // 触发报告生成完成事件
+          emit('report-generated', result.value)
         },
         onError: (e: Error) => { error.value = e.message; isRunning.value = false },
       }
@@ -222,6 +297,56 @@ async function handleExecute() {
     error.value = e instanceof Error ? e.message : '执行失败'
     isRunning.value = false
   }
+}
+
+async function handleExport() {
+  if (!result.value) return
+
+  isExporting.value = true
+
+  try {
+    const response = await fetch('/api/export-docx', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ content: result.value, reportType: detectReportType(result.value) })
+    })
+
+    const data = await response.json()
+    
+    if (data.success) {
+      const link = document.createElement('a')
+      const url = `/api/download?path=${encodeURIComponent(data.path)}`
+      link.href = url
+      link.download = data.filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      console.log('报告导出成功:', data.filename)
+    } else {
+      console.error('导出失败:', data.message)
+    }
+  } catch (error) {
+    console.error('导出失败:', error)
+  } finally {
+    isExporting.value = false
+  }
+}
+
+// 收藏功能处理
+const handleSaveFavorite = (data: { content: string; originalContent?: string }) => {
+  if (!globalHandleSaveFavorite) {
+    console.warn('[ReportExecutePanel] handleSaveFavorite not available from App.vue')
+    return
+  }
+
+  if (!data.content) {
+    console.warn('[ReportExecutePanel] No content to save')
+    return
+  }
+
+  globalHandleSaveFavorite(data)
 }
 </script>
 
@@ -245,6 +370,12 @@ async function handleExecute() {
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.export-button {
+  background: linear-gradient(135deg, #7b3fb2, #8f4fc5) !important;
+  border-color: #7b3fb2 !important;
+  color: white !important;
 }
 
 .run-button {

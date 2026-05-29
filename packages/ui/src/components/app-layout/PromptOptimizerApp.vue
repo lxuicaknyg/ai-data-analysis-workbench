@@ -28,7 +28,16 @@
             <p>{{ t("log.info.initializing") }}</p>
         </div>
         <template v-else>
-            <MainLayoutUI>
+            <!-- 登录页面不显示布局 -->
+            <template v-if="routerInstance.currentRoute.value.path === '/login'">
+                <RouterView v-slot="{ Component, route: viewRoute }">
+                    <component
+                        :is="Component"
+                        :key="viewRoute.fullPath"
+                    />
+                </RouterView>
+            </template>
+            <MainLayoutUI v-else>
                 <!-- Title Slot -->
                 <template #title>
                     {{ t("promptOptimizer.title") }}
@@ -39,16 +48,40 @@
                     <AppCoreNav />
                 </template>
 
+                <!-- User Info Slot (用户名 + 登出) -->
+                <template #user-info>
+                    <div class="user-info-container">
+                        <span class="username">
+                            <NIcon class="user-icon"><User /></NIcon>
+                            {{ authStore.user?.username }}
+                        </span>
+                        <ActionButtonUI
+                            text="登出"
+                            @click="handleLogout"
+                            type="default"
+                            size="small"
+                            :ghost="false"
+                            :round="true"
+                        >
+                            <template #icon>
+                                <NIcon class="logout-icon"><Logout /></NIcon>
+                            </template>
+                        </ActionButtonUI>
+                    </div>
+                </template>
+
                 <!-- Actions Slot -->
                 <template #actions>
                     <AppHeaderActions
                         @open-templates="openTemplateManager"
                         @open-history="historyManager.showHistory = true"
+                        @open-model-manager="openModelManager"
                         @open-favorites="showFavoriteManager = true"
                         @open-data-manager="showDataManager = true"
                         @open-variables="handleOpenVariableManager()"
                         @open-datasource="showDatasourceDrawer = true"
                         @open-user-manual="showUserGuideDrawer = true"
+                        @open-user-management="handleOpenUserManagement"
                         :app-version="appVersion"
                         :is-report-mode="routerInstance.currentRoute.value.path.startsWith('/report')"
                         @open-website="openOfficialWebsite"
@@ -75,18 +108,16 @@
             </MainLayoutUI>
 
             <!-- Modals and Drawers that are conditionally rendered -->
-            <!-- 模型管理功能已按业务要求暂时隐藏，保留代码便于后续恢复。
             <ModelManagerUI
-                v-if="isReady"
+                v-if="isReady && authStore.isAdmin"
                 v-model:show="modelManager.showConfig"
-                @models-updated="handleTextModelsUpdated"
+                :services="services"
                 @update:show="
                     (v: boolean) => {
                         if (!v) handleModelManagerClosed();
                     }
                 "
             />
-            -->
             <TemplateManagerUI
                 v-if="isReady"
                 v-model:show="templateManagerState.showTemplates"
@@ -273,8 +304,7 @@ hljs.registerLanguage("json", jsonLang);
 
 // 内部组件导入
 import MainLayoutUI from '../MainLayout.vue'
-// 模型管理功能暂时隐藏，组件导入保留为注释便于后续恢复。
-// import ModelManagerUI from '../ModelManager.vue'
+import ModelManagerUI from '../ModelManager.vue'
 import TemplateManagerUI from '../TemplateManager.vue'
 import HistoryDrawerUI from '../HistoryDrawer.vue'
 import DataManagerUI from '../DataManager.vue'
@@ -287,6 +317,9 @@ import ContextEditor from '../context-mode/ContextEditor.vue'
 import PromptPreviewPanel from '../PromptPreviewPanel.vue'
 import AppHeaderActions from './AppHeaderActions.vue'
 import AppCoreNav from './AppCoreNav.vue'
+import ActionButtonUI from '../ActionButton.vue'
+import { NIcon } from 'naive-ui'
+import { User, Logout } from '@vicons/tabler'
 import DataSourcePanel from '../report-mode/DataSourcePanel.vue'
 import ReportUserGuide from '../report-mode/ReportUserGuide.vue'
 import rootPackageJson from '../../../../../package.json'
@@ -332,6 +365,7 @@ import { initializeI18nWithStorage, setI18nServices } from '../../plugins/i18n'
 import { setPiniaServices, getPiniaServices } from '../../plugins/pinia'
 // ⚠️ Codex 建议：改用直接路径导入，避免 barrel exports 循环依赖导致 TDZ
 import { useSessionManager, type SubModeKey } from '../../stores/session/useSessionManager'
+import { useAuthStore } from '../../stores/auth/useAuthStore'
 import { useBasicSystemSession } from '../../stores/session/useBasicSystemSession'
 import { useBasicUserSession } from '../../stores/session/useBasicUserSession'
 import { useProMultiMessageSession } from '../../stores/session/useProMultiMessageSession'
@@ -417,6 +451,10 @@ const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
 
 // 2. 初始化应用服务
 const { services, isInitializing, startupRepairReport } = useAppInitializer();
+
+// 🔐 初始化认证状态
+const authStore = useAuthStore();
+authStore.restoreSession();
 
 const hasShownStartupRepairToast = ref(false)
 
@@ -811,6 +849,17 @@ const handleOpenVariableManager = (variableName?: string) => {
         focusVariableName.value = variableName;
     }
     showVariableManager.value = true;
+};
+
+// 🔐 打开用户管理页面
+const handleOpenUserManagement = () => {
+    routerInstance.push('/admin/users');
+};
+
+// 🔐 登出处理
+const handleLogout = () => {
+    authStore.logout();
+    routerInstance.push('/login');
 };
 
 // 🆕 AI 变量提取处理函数
@@ -1978,20 +2027,20 @@ const handleTemplateManagerClosed = () => {
     }
 };
 
-/*
-// 模型管理功能已按业务要求暂时隐藏，暂不向工作区提供 openModelManager 接口。
+// 🔐 模型管理功能（仅管理员可用）
 const openModelManager = (tab: "text" | "image" | "function" = "text") => {
-    modelManager.showConfig = true;
-    setTimeout(() => {
-        if (typeof window !== "undefined") {
-            window.dispatchEvent(
-                new CustomEvent("model-manager:set-tab", { detail: tab }),
-            );
-        }
-    }, 0);
+    if (authStore.isAdmin) {
+        modelManager.showConfig = true;
+        setTimeout(() => {
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                    new CustomEvent("model-manager:set-tab", { detail: tab }),
+                );
+            }
+        }, 0);
+    }
 };
 provide("openModelManager", openModelManager);
-*/
 
 // 提供 openContextEditor 接口（供 Pro Multi 等工作区直接调用）
 type ContextEditorOpenArg = ConversationMessage[] | "messages" | "variables" | "tools";
@@ -2361,6 +2410,32 @@ onBeforeUnmount(async () => {
 </script>
 
 <style scoped>
+/* 用户信息容器样式 */
+.user-info-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.username {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+.user-icon {
+    color: #a973c1;
+    font-size: 16px;
+}
+
+.logout-icon {
+    color: #a973c1;
+    font-size: 13px;
+}
+
 .active-button {
     background-color: var(--primary-color, #3b82f6) !important;
     color: white !important;

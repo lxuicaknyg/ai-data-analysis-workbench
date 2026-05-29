@@ -4,7 +4,8 @@
         <!-- 标题区域 -->
         <NFlex justify="space-between" align="center" :wrap="false">
             <NFlex align="center" :size="8">
-                <NText :depth="1" style="font-size: 18px; font-weight: 500">{{
+                <div class="panel-accent" style="width: 4px; height: 20px; border-radius: 999px; background: linear-gradient(180deg, #7b3fb2, #c3262f); margin-right: 6px; flex-shrink: 0;"></div>
+                <NText :depth="1" style="font-size: 18px; font-weight: 700; color: #242832;">{{
                     label
                 }}</NText>
                 <!-- 🆕 帮助提示图标 -->
@@ -392,3 +393,17 @@ const handleAddMissingVariable = (varName: string) => {
     emit("add-missing-variable", varName);
 };
 </script>
+
+<style scoped>
+/* 面板标题炫彩竖线 */
+:deep(.panel-accent) {
+    width: 4px !important;
+    height: 16px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(180deg, #7b3fb2, #c3262f) !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+    margin-right: 8px !important;
+    vertical-align: middle !important;
+}
+</style>

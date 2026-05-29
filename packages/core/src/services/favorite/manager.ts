@@ -214,6 +214,17 @@ export class FavoriteManager implements IFavoriteManager {
       }
     }
 
+    // report 模式不需要二级模式，但需要确保没有传入无效的二级模式
+    if (favorite.functionMode === 'report') {
+      // report 模式下不应该有 optimizationMode 或 imageSubMode
+      if (favorite.optimizationMode) {
+        throw new FavoriteValidationError('Report mode does not support optimizationMode');
+      }
+      if (favorite.imageSubMode) {
+        throw new FavoriteValidationError('Report mode does not support imageSubMode');
+      }
+    }
+
     assertFavoriteMetadataHasNoInlineImages(favorite.metadata);
 
     const favoriteData = {
@@ -607,7 +618,7 @@ export class FavoriteManager implements IFavoriteManager {
       totalFavorites: favorites.length,
       categoryStats,
       tagStats,
-      lastUsedAt: Math.max(...favorites.map(f => f.updatedAt), 0)
+      lastUsedAt: favorites.length > 0 ? Math.max(...favorites.map(f => f.updatedAt)) : 0
     };
 
     // 缓存统计数据
